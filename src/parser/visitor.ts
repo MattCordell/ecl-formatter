@@ -12,15 +12,15 @@ export class EclAstVisitor extends BaseEclVisitor {
   }
 
   expressionConstraint(ctx: any): ast.ExpressionConstraint["expression"] {
-    const left = this.visit(ctx.subExpressionConstraint[0]);
+    const first = this.visit(ctx.simpleOrRefinedExpression[0]);
 
     // Check if this is a compound expression (has boolean operators)
     if (ctx.booleanOperator && ctx.booleanOperator.length > 0) {
       // Build compound expression chain
-      let result = left;
+      let result = first;
       for (let i = 0; i < ctx.booleanOperator.length; i++) {
         const operator = this.visit(ctx.booleanOperator[i]);
-        const right = this.visit(ctx.subExpressionConstraint[i + 1]);
+        const right = this.visit(ctx.simpleOrRefinedExpression[i + 1]);
         result = {
           type: "CompoundExpression",
           operator,
@@ -31,17 +31,23 @@ export class EclAstVisitor extends BaseEclVisitor {
       return result;
     }
 
-    // Check if this is a refined expression (has colon + refinement)
+    // Single expression (simple or refined)
+    return first;
+  }
+
+  simpleOrRefinedExpression(ctx: any): ast.SubExpression | ast.RefinedExpression {
+    const subExpr = this.visit(ctx.subExpressionConstraint[0]) as ast.SubExpression;
+
+    // Check if this has a refinement
     if (ctx.Colon && ctx.eclRefinement) {
       return {
         type: "RefinedExpression",
-        expression: left,
+        expression: subExpr,
         refinement: this.visit(ctx.eclRefinement[0]),
       } as ast.RefinedExpression;
     }
 
-    // Otherwise just return the sub-expression
-    return left;
+    return subExpr;
   }
 
   booleanOperator(ctx: any): "AND" | "OR" | "MINUS" {
@@ -233,13 +239,7 @@ export class EclAstVisitor extends BaseEclVisitor {
   }
 
   eclAttributeName(ctx: any): ast.AttributeName {
-    if (ctx.eclConceptReference) {
-      return this.visit(ctx.eclConceptReference[0]);
-    }
-    if (ctx.Wildcard) {
-      return { type: "WildcardConcept" } as ast.WildcardConcept;
-    }
-    throw new Error("Unknown attribute name type");
+    return this.visit(ctx.subExpressionConstraint[0]) as ast.SubExpression;
   }
 
   comparator(ctx: any): ast.Attribute["comparator"] {
@@ -284,11 +284,28 @@ export class EclAstVisitor extends BaseEclVisitor {
   }
 
   cardinality(ctx: any): ast.Cardinality {
-    const minToken = ctx.Integer?.[0] || ctx.Wildcard?.[0];
-    const maxToken = ctx.Integer?.[1] || ctx.Wildcard?.[1];
+    // Collect all min/max tokens and sort by position
+    const allTokens: Array<{ token: any; isWildcard: boolean }> = [];
 
-    const min = minToken.image === "*" ? "*" : parseInt(minToken.image, 10);
-    const max = maxToken.image === "*" ? "*" : parseInt(maxToken.image, 10);
+    if (ctx.Integer) {
+      for (const token of ctx.Integer) {
+        allTokens.push({ token, isWildcard: false });
+      }
+    }
+    if (ctx.Wildcard) {
+      for (const token of ctx.Wildcard) {
+        allTokens.push({ token, isWildcard: true });
+      }
+    }
+
+    // Sort by start offset to get [min, max] order
+    allTokens.sort((a, b) => a.token.startOffset - b.token.startOffset);
+
+    const minEntry = allTokens[0];
+    const maxEntry = allTokens[1];
+
+    const min = minEntry.isWildcard ? "*" : parseInt(minEntry.token.image, 10);
+    const max = maxEntry.isWildcard ? "*" : parseInt(maxEntry.token.image, 10);
 
     return { type: "Cardinality", min, max };
   }

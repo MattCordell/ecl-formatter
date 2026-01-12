@@ -81,28 +81,21 @@ export class EclParser extends CstParser {
     this.performSelfAnalysis();
   }
 
-  // Entry point
+  // Entry point: handles compound expressions containing simple or refined expressions
   public expressionConstraint = this.RULE("expressionConstraint", () => {
+    this.SUBRULE(this.simpleOrRefinedExpression);
+    this.MANY(() => {
+      this.SUBRULE(this.booleanOperator);
+      this.SUBRULE2(this.simpleOrRefinedExpression);
+    });
+  });
+
+  // A simple expression optionally followed by a refinement
+  private simpleOrRefinedExpression = this.RULE("simpleOrRefinedExpression", () => {
     this.SUBRULE(this.subExpressionConstraint);
     this.OPTION(() => {
-      this.OR([
-        // Compound: AND/OR/MINUS
-        {
-          ALT: () => {
-            this.AT_LEAST_ONE(() => {
-              this.SUBRULE(this.booleanOperator);
-              this.SUBRULE2(this.subExpressionConstraint);
-            });
-          },
-        },
-        // Refined: colon + refinement
-        {
-          ALT: () => {
-            this.CONSUME(Colon);
-            this.SUBRULE(this.eclRefinement);
-          },
-        },
-      ]);
+      this.CONSUME(Colon);
+      this.SUBRULE(this.eclRefinement);
     });
   });
 
@@ -238,12 +231,9 @@ export class EclParser extends CstParser {
     this.SUBRULE(this.eclAttributeValue);
   });
 
-  // Attribute name: concept reference or wildcard
+  // Attribute name: can be a sub-expression (allowing constraint operators like <<)
   private eclAttributeName = this.RULE("eclAttributeName", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.eclConceptReference) },
-      { ALT: () => this.CONSUME(Wildcard) },
-    ]);
+    this.SUBRULE(this.subExpressionConstraint);
   });
 
   // Comparator

@@ -123,7 +123,8 @@ export interface Attribute extends AstNode {
 }
 
 // Attribute name: concept reference or wildcard
-export type AttributeName = ConceptReference | WildcardConcept;
+// Attribute name can be a full sub-expression (e.g., << 127489000)
+export type AttributeName = SubExpression;
 
 // Attribute value: expression constraint or concrete value
 export type AttributeValue =
