@@ -51,6 +51,7 @@ import {
   StringLiteral,
   TermString,
   DialectAlias,
+  AlternateIdCode,
   Identifier,
   // Filter keywords
   Term,
@@ -175,6 +176,7 @@ export class EclParser extends CstParser {
     this.CONSUME(Hash);
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.CONSUME(AlternateIdCode) },
       { ALT: () => this.CONSUME(SctId) },
       { ALT: () => this.CONSUME2(Identifier) },
     ]);
@@ -311,7 +313,7 @@ export class EclParser extends CstParser {
     ]);
   });
 
-  // Term filter: term = "value" or term = match:"value"
+  // Term filter: term = "value" or term = match:"value" or term = ("value1" "value2" ...)
   private termFilter = this.RULE("termFilter", () => {
     this.CONSUME(Term);
     this.CONSUME(Equals);
@@ -322,7 +324,19 @@ export class EclParser extends CstParser {
       ]);
       this.CONSUME(Colon);
     });
-    this.CONSUME(StringLiteral);
+    // String value(s) can optionally be wrapped in parentheses (multiple values allowed)
+    this.OR2([
+      {
+        ALT: () => {
+          this.CONSUME(LParen);
+          this.AT_LEAST_ONE(() => {
+            this.CONSUME(StringLiteral);
+          });
+          this.CONSUME(RParen);
+        },
+      },
+      { ALT: () => this.CONSUME2(StringLiteral) },
+    ]);
   });
 
   // Language filter

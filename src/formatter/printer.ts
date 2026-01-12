@@ -320,10 +320,14 @@ function printFilterConstraint(
   switch (node.type) {
     case "TermFilter": {
       const termFilter = node as ast.TermFilter;
+      const quotedValues = termFilter.values.map(v => `"${v}"`);
+      const valueStr = termFilter.values.length > 1
+        ? `(${quotedValues.join(" ")})`
+        : quotedValues[0];
       if (termFilter.operator) {
-        return `term = ${termFilter.operator}:"${termFilter.value}"`;
+        return `term = ${termFilter.operator}:${valueStr}`;
       }
-      return `term = "${termFilter.value}"`;
+      return `term = ${valueStr}`;
     }
 
     case "LanguageFilter":

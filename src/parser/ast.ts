@@ -179,7 +179,7 @@ export type FilterConstraint =
 export interface TermFilter extends AstNode {
   type: "TermFilter";
   operator?: "match" | "wild";
-  value: string;
+  values: string[];
 }
 
 export interface LanguageFilter extends AstNode {

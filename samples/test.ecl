@@ -35,17 +35,14 @@ memberOf 700043003 |Example problem list concepts reference set|
 << 404684003 |Clinical finding|: { 363698007 |Finding site| = << 39057004 |Pulmonary valve| }
 
 /* Multiple attributes */
-<< 404684003 |Clinical finding|:
-    363698007 |Finding site| = << 39057004 |Pulmonary valve|,
-    116676008 |Associated morphology| = << 55641003 |Infarct|
+<< 404684003 |Clinical finding|:363698007 |Finding site| = << 39057004 |Pulmonary valve|, 116676008 |Associated morphology| = << 55641003 |Infarct|
 
 /* Cardinality */
 << 404684003 |Clinical finding|: [1..3] 363698007 |Finding site| = << 39057004 |Pulmonary valve|
 << 404684003 |Clinical finding|: [0..*] 363698007 |Finding site| = *
 
 /* Nested expression */
-(<< 404684003 |Clinical finding|: 363698007 |Finding site| = << 39057004 |Pulmonary valve|)
-    AND (<< 64572001 |Disease|)
+(<< 404684003 |Clinical finding|: 363698007 |Finding site| = << 39057004 |Pulmonary valve|) AND (<< 64572001 |Disease|)
 
 /* Description filter */
 << 404684003 |Clinical finding| {{ term = "heart" }}
@@ -62,7 +59,4 @@ LOINC#54486-6
 LOINC#"54486-6"
 
 /* Complex example */
-(<< 404684003 |Clinical finding|:
-    { 363698007 |Finding site| = << 39057004 |Pulmonary valve|,
-      116676008 |Associated morphology| = << 55641003 |Infarct| }
-) {{ term = "heart", dialect = en-US }}
+(<< 404684003 |Clinical finding|: { 363698007 |Finding site| = << 39057004 |Pulmonary valve|, 116676008 |Associated morphology| = << 55641003 |Infarct| } ) {{ term = "heart", dialect = en-US }}

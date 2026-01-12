@@ -141,6 +141,8 @@ export class EclAstVisitor extends BaseEclVisitor {
     if (ctx.StringLiteral) {
       // Remove quotes
       code = ctx.StringLiteral[0].image.slice(1, -1);
+    } else if (ctx.AlternateIdCode) {
+      code = ctx.AlternateIdCode[0].image;
     } else if (ctx.SctId) {
       code = ctx.SctId[0].image;
     } else if (ctx.Identifier && ctx.Identifier.length > 1) {
@@ -348,10 +350,13 @@ export class EclAstVisitor extends BaseEclVisitor {
     if (ctx.Match) operator = "match";
     if (ctx.Wild) operator = "wild";
 
+    // Collect all string literal values (there may be multiple)
+    const values = ctx.StringLiteral.map((token: any) => token.image.slice(1, -1));
+
     return {
       type: "TermFilter",
       operator,
-      value: ctx.StringLiteral[0].image.slice(1, -1),
+      values,
     };
   }
 

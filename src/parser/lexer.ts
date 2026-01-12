@@ -7,10 +7,11 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 });
 
-// Comments - preserved for formatting
+// Comments - skipped for now (preserving comments would require parser changes)
 export const BlockComment = createToken({
   name: "BlockComment",
   pattern: /\/\*[\s\S]*?\*\//,
+  group: Lexer.SKIPPED,
 });
 
 // Double brace delimiters (must come before single braces)
@@ -333,6 +334,14 @@ export const DialectAlias = createToken({
   pattern: /[a-z]{2}-[A-Z]{2}/,
 });
 
+// Alternate identifier code (e.g., 54486-6)
+// Matches codes that start with digits and contain hyphens
+// This distinguishes codes from scheme names (which start with letters)
+export const AlternateIdCode = createToken({
+  name: "AlternateIdCode",
+  pattern: /\d+(?:-[a-zA-Z0-9]+)+/,
+});
+
 // Identifier (for scheme names in alternate identifiers)
 export const Identifier = createToken({
   name: "Identifier",
@@ -419,6 +428,9 @@ export const allTokens = [
   // Term string (pipes with content) - must come before Pipe
   TermString,
   Pipe,
+
+  // Alternate ID codes with hyphens (before SCTID/Integer to get priority)
+  AlternateIdCode,
 
   // SCTID before Integer (longer pattern)
   SctId,
