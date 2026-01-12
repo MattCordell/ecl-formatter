@@ -1,0 +1,76 @@
+{
+  "name": "ecl-formatter",
+  "displayName": "SNOMED CT ECL Formatter",
+  "description": "Syntax highlighting and formatting for SNOMED CT Expression Constraint Language (ECL)",
+  "version": "0.1.0",
+  "publisher": "MattCordell",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MattCordell/ecl-formatter.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:ecl"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ecl",
+        "aliases": [
+          "ECL",
+          "SNOMED ECL",
+          "Expression Constraint Language"
+        ],
+        "extensions": [
+          ".ecl",
+          ".snomed-ecl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ecl",
+        "scopeName": "source.ecl",
+        "path": "./syntaxes/ecl.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "ECL Formatter",
+      "properties": {
+        "ecl.formatter.indentSize": {
+          "type": "number",
+          "default": 2,
+          "description": "Number of spaces for indentation"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build -- --production",
+    "build": "node esbuild.config.js",
+    "watch": "node esbuild.config.js --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.0"
+  }
+}

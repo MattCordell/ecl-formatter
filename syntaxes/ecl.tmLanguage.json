@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ECL",
+  "scopeName": "source.ecl",
+  "fileTypes": ["ecl", "snomed-ecl"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#concept-reference" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.block.ecl",
+      "begin": "/\\*",
+      "end": "\\*/"
+    },
+    "concept-reference": {
+      "name": "meta.concept-reference.ecl",
+      "match": "(\\d{6,18})(\\s*)(\\|)([^|]*)(\\|)",
+      "captures": {
+        "1": { "name": "constant.numeric.sctid.ecl" },
+        "3": { "name": "punctuation.definition.term.begin.ecl" },
+        "4": { "name": "string.unquoted.term.ecl" },
+        "5": { "name": "punctuation.definition.term.end.ecl" }
+      }
+    }
+  }
+}
