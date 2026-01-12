@@ -5,23 +5,279 @@
   "fileTypes": ["ecl", "snomed-ecl"],
   "patterns": [
     { "include": "#comment" },
-    { "include": "#concept-reference" }
+    { "include": "#filter" },
+    { "include": "#attribute-group" },
+    { "include": "#cardinality" },
+    { "include": "#concept-reference" },
+    { "include": "#constraint-operator-long" },
+    { "include": "#constraint-operator-brief" },
+    { "include": "#logical-operator" },
+    { "include": "#refinement-separator" },
+    { "include": "#comparison-operator" },
+    { "include": "#alternate-identifier" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#wildcard" },
+    { "include": "#punctuation" }
   ],
   "repository": {
     "comment": {
       "name": "comment.block.ecl",
       "begin": "/\\*",
-      "end": "\\*/"
+      "end": "\\*/",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.comment.begin.ecl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.comment.end.ecl" }
+      }
     },
     "concept-reference": {
-      "name": "meta.concept-reference.ecl",
-      "match": "(\\d{6,18})(\\s*)(\\|)([^|]*)(\\|)",
+      "patterns": [
+        {
+          "comment": "SNOMED CT concept with term: 404684003 |Clinical finding|",
+          "name": "meta.concept-reference.ecl",
+          "match": "(\\d{6,18})(\\s*)(\\|)([^|]*)(\\|)",
+          "captures": {
+            "1": { "name": "constant.numeric.sctid.ecl" },
+            "3": { "name": "punctuation.definition.term.begin.ecl" },
+            "4": { "name": "string.unquoted.term.ecl" },
+            "5": { "name": "punctuation.definition.term.end.ecl" }
+          }
+        },
+        {
+          "comment": "SNOMED CT concept ID without term",
+          "name": "constant.numeric.sctid.ecl",
+          "match": "\\b\\d{6,18}\\b"
+        }
+      ]
+    },
+    "constraint-operator-brief": {
+      "patterns": [
+        {
+          "comment": "childOrSelfOf <<!",
+          "name": "keyword.operator.constraint.child-or-self.ecl",
+          "match": "<<!"
+        },
+        {
+          "comment": "descendantOrSelfOf <<",
+          "name": "keyword.operator.constraint.descendant-or-self.ecl",
+          "match": "<<"
+        },
+        {
+          "comment": "childOf <!",
+          "name": "keyword.operator.constraint.child.ecl",
+          "match": "<!"
+        },
+        {
+          "comment": "descendantOf <",
+          "name": "keyword.operator.constraint.descendant.ecl",
+          "match": "<(?![=<])"
+        },
+        {
+          "comment": "parentOrSelfOf >>!",
+          "name": "keyword.operator.constraint.parent-or-self.ecl",
+          "match": ">>!"
+        },
+        {
+          "comment": "ancestorOrSelfOf >>",
+          "name": "keyword.operator.constraint.ancestor-or-self.ecl",
+          "match": ">>"
+        },
+        {
+          "comment": "parentOf >!",
+          "name": "keyword.operator.constraint.parent.ecl",
+          "match": ">!(?!>)"
+        },
+        {
+          "comment": "ancestorOf >",
+          "name": "keyword.operator.constraint.ancestor.ecl",
+          "match": ">(?![=>])"
+        },
+        {
+          "comment": "memberOf ^",
+          "name": "keyword.operator.constraint.member-of.ecl",
+          "match": "\\^"
+        }
+      ]
+    },
+    "constraint-operator-long": {
+      "name": "keyword.operator.constraint.ecl",
+      "match": "\\b(descendantOf|descendantOrSelfOf|childOf|childOrSelfOf|ancestorOf|ancestorOrSelfOf|parentOf|parentOrSelfOf|memberOf)\\b"
+    },
+    "logical-operator": {
+      "name": "keyword.operator.logical.ecl",
+      "match": "\\b(AND|OR|MINUS)\\b"
+    },
+    "refinement-separator": {
+      "name": "punctuation.separator.refinement.ecl",
+      "match": ":"
+    },
+    "comparison-operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.ecl",
+          "match": "!=|<=|>=|=|<|>"
+        }
+      ]
+    },
+    "attribute-group": {
+      "comment": "Attribute group with curly braces (not filter double braces)",
+      "begin": "(?<!\\{)\\{(?!\\{)",
+      "end": "(?<!\\})\\}(?!\\})",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.group.begin.ecl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.group.end.ecl" }
+      },
+      "name": "meta.attribute-group.ecl",
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#cardinality" },
+        { "include": "#concept-reference" },
+        { "include": "#constraint-operator-long" },
+        { "include": "#constraint-operator-brief" },
+        { "include": "#logical-operator" },
+        { "include": "#comparison-operator" },
+        { "include": "#alternate-identifier" },
+        { "include": "#string" },
+        { "include": "#number" },
+        { "include": "#wildcard" },
+        { "include": "#punctuation" }
+      ]
+    },
+    "cardinality": {
+      "comment": "Cardinality constraint [min..max]",
+      "name": "meta.cardinality.ecl",
+      "match": "\\[(\\d+|\\*)(\\.\\.)?(\\d+|\\*)?\\]",
       "captures": {
-        "1": { "name": "constant.numeric.sctid.ecl" },
-        "3": { "name": "punctuation.definition.term.begin.ecl" },
-        "4": { "name": "string.unquoted.term.ecl" },
-        "5": { "name": "punctuation.definition.term.end.ecl" }
+        "0": { "name": "meta.cardinality.ecl" },
+        "1": { "name": "constant.numeric.cardinality.min.ecl" },
+        "2": { "name": "punctuation.separator.range.ecl" },
+        "3": { "name": "constant.numeric.cardinality.max.ecl" }
       }
+    },
+    "filter": {
+      "comment": "Filter constraint with double braces {{ }}",
+      "begin": "\\{\\{",
+      "end": "\\}\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.filter.begin.ecl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.filter.end.ecl" }
+      },
+      "name": "meta.filter.ecl",
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#filter-keyword" },
+        { "include": "#dialect-alias" },
+        { "include": "#logical-operator" },
+        { "include": "#comparison-operator" },
+        { "include": "#string" },
+        { "include": "#number" },
+        { "include": "#wildcard" },
+        { "include": "#punctuation" }
+      ]
+    },
+    "filter-keyword": {
+      "patterns": [
+        {
+          "comment": "Description filter keywords",
+          "name": "keyword.other.filter.description.ecl",
+          "match": "\\b(term|language|type|typeId|dialect|dialectId|PREFERRED|ACCEPTABLE)\\b"
+        },
+        {
+          "comment": "Concept filter keywords",
+          "name": "keyword.other.filter.concept.ecl",
+          "match": "\\b(moduleId|effectiveTime|active|definitionStatusId|PRIMITIVE|DEFINED)\\b"
+        },
+        {
+          "comment": "Member filter keywords",
+          "name": "keyword.other.filter.member.ecl",
+          "match": "\\b(referencedComponentId|targetComponentId|mapTarget)\\b"
+        },
+        {
+          "comment": "String matching operators",
+          "name": "keyword.other.filter.match.ecl",
+          "match": "\\b(match|wild)\\b"
+        }
+      ]
+    },
+    "dialect-alias": {
+      "comment": "Dialect aliases like en-US, en-GB",
+      "name": "constant.language.dialect.ecl",
+      "match": "\\b[a-z]{2}-[A-Z]{2}\\b"
+    },
+    "alternate-identifier": {
+      "comment": "Alternate identifier like LOINC#54486-6",
+      "name": "meta.alternate-identifier.ecl",
+      "match": "([A-Za-z][A-Za-z0-9_]*)(#)(\"[^\"]*\"|[^\\s\\|\\)\\]\\}]+)",
+      "captures": {
+        "1": { "name": "entity.name.scheme.ecl" },
+        "2": { "name": "punctuation.separator.scheme.ecl" },
+        "3": { "name": "constant.other.code.ecl" }
+      }
+    },
+    "string": {
+      "name": "string.quoted.double.ecl",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.ecl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.ecl" }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.ecl",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "number": {
+      "patterns": [
+        {
+          "comment": "Decimal number",
+          "name": "constant.numeric.decimal.ecl",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "comment": "Integer (but not SCTID which is 6-18 digits)",
+          "name": "constant.numeric.integer.ecl",
+          "match": "\\b\\d{1,5}\\b"
+        }
+      ]
+    },
+    "wildcard": {
+      "name": "keyword.operator.wildcard.ecl",
+      "match": "\\*"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.parenthesis.open.ecl",
+          "match": "\\("
+        },
+        {
+          "name": "punctuation.parenthesis.close.ecl",
+          "match": "\\)"
+        },
+        {
+          "name": "punctuation.bracket.open.ecl",
+          "match": "\\["
+        },
+        {
+          "name": "punctuation.bracket.close.ecl",
+          "match": "\\]"
+        },
+        {
+          "name": "punctuation.separator.comma.ecl",
+          "match": ","
+        }
+      ]
     }
   }
 }
