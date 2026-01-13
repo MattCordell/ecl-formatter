@@ -32,9 +32,14 @@ export const defaultOptions: FormattingOptions = {
  */
 export function isComplex(node: ast.AstNode): boolean {
   switch (node.type) {
-    case "CompoundExpression":
-      // Compound expressions are always complex
-      return true;
+    case "CompoundExpression": {
+      // Compound expressions are only complex if their operands are complex
+      const compound = node as ast.CompoundExpression;
+      return (
+        isComplex(compound.left as ast.AstNode) ||
+        isComplex(compound.right as ast.AstNode)
+      );
+    }
 
     case "RefinedExpression":
       // Refined expressions (with :) are always complex

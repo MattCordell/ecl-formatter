@@ -6,6 +6,7 @@ import * as ast from "../parser/ast";
 import {
   FormattingOptions,
   defaultOptions,
+  isComplex,
   shouldBreakCompound,
   shouldBreakRefinement,
   shouldBreakAttributeGroup,
@@ -107,9 +108,28 @@ function printCompound(
   const nextIndent = indent + options.indentSize;
 
   if (shouldBreak) {
-    const rightStr = print(node.right as ast.AstNode, options, nextIndent, nextIndent);
     const spaces = " ".repeat(indent);
-    return `${leftStr}\n${spaces}${node.operator}\n${" ".repeat(nextIndent)}${rightStr}`;
+
+    // Special case: if right is a SubExpression with NestedExpression as focusConcept,
+    // keep operator with opening paren to avoid lonely operator on a line
+    if (
+      node.right.type === "SubExpression" &&
+      !node.right.constraintOperator &&
+      !node.right.filters &&
+      node.right.focusConcept.type === "NestedExpression"
+    ) {
+      const nestedExpr = node.right.focusConcept as ast.NestedExpression;
+      const innerStr = print(nestedExpr.expression as ast.AstNode, options, nextIndent, nextIndent);
+      // Closing paren must align with opening paren (after the operator)
+      const parenColumn = indent + node.operator.length;
+      const closingSpaces = " ".repeat(parenColumn);
+      return `${leftStr}\n${spaces}${node.operator}(\n${" ".repeat(nextIndent)}${innerStr}\n${closingSpaces})`;
+    }
+
+    // Put operator and right operand on the same line
+    const operatorColumn = indent + node.operator.length + 1; // +1 for space after operator
+    const rightStr = print(node.right as ast.AstNode, options, indent, operatorColumn);
+    return `${leftStr}\n${spaces}${node.operator} ${rightStr}`;
   } else {
     const leftLength = leftStr.length;
     const rightColumn = column + leftLength + 1 + node.operator.length + 1; // +1 for spaces
@@ -190,8 +210,17 @@ function printNestedExpression(
   indent: number,
   column: number
 ): string {
-  // Opening paren is at current column
-  // Content starts on next line
+  // Check if the inner expression is complex
+  const innerIsComplex = isComplex(node.expression as ast.AstNode);
+
+  if (!innerIsComplex) {
+    // Simple expression - keep on one line
+    const innerColumn = column + 1; // After opening paren
+    const innerStr = print(node.expression as ast.AstNode, options, indent, innerColumn);
+    return `(${innerStr})`;
+  }
+
+  // Complex expression - break across lines
   // - If paren is at the start of a line (column == indent), indent by one level
   // - If paren is in the middle of a line, align to column after the paren
   let contentIndent: number;
