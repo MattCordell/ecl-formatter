@@ -105,7 +105,6 @@ function printCompound(
 ): string {
   const shouldBreak = shouldBreakCompound(node);
   const leftStr = print(node.left as ast.AstNode, options, indent, column);
-  const nextIndent = indent + options.indentSize;
 
   if (shouldBreak) {
     const spaces = " ".repeat(indent);
@@ -119,11 +118,14 @@ function printCompound(
       node.right.focusConcept.type === "NestedExpression"
     ) {
       const nestedExpr = node.right.focusConcept as ast.NestedExpression;
-      const innerStr = print(nestedExpr.expression as ast.AstNode, options, nextIndent, nextIndent);
-      // Closing paren must align with opening paren (after the operator)
+      // Opening paren is at position: indent + operator.length
+      // Content should be indented by 2 spaces from the opening paren
       const parenColumn = indent + node.operator.length;
+      const contentIndent = parenColumn + options.indentSize;
+      const innerStr = print(nestedExpr.expression as ast.AstNode, options, contentIndent, contentIndent);
+      // Closing paren must align with opening paren (after the operator)
       const closingSpaces = " ".repeat(parenColumn);
-      return `${leftStr}\n${spaces}${node.operator}(\n${" ".repeat(nextIndent)}${innerStr}\n${closingSpaces})`;
+      return `${leftStr}\n${spaces}${node.operator}(\n${" ".repeat(contentIndent)}${innerStr}\n${closingSpaces})`;
     }
 
     // Put operator and right operand on the same line
@@ -221,19 +223,28 @@ function printNestedExpression(
   }
 
   // Complex expression - break across lines
-  // - If paren is at the start of a line (column == indent), indent by one level
-  // - If paren is in the middle of a line, align to column after the paren
+  // Content is indented based on what it contains:
+  // - Lines with only opening paren: indent 1 space from opening paren
+  // - Lines with content: indent 2 spaces (full indent) from opening paren
+
+  // Check if inner expression starts with just an opening paren (no content on same line)
+  const innerStartsWithParen =
+    node.expression.type === "SubExpression" &&
+    !node.expression.constraintOperator &&
+    !node.expression.filters &&
+    node.expression.focusConcept.type === "NestedExpression";
+
   let contentIndent: number;
   let contentColumn: number;
 
-  if (column === indent) {
-    // Paren is at start of line - use standard indentation
-    contentIndent = indent + options.indentSize;
+  if (innerStartsWithParen) {
+    // Line contains only opening paren - indent 1 space
+    contentIndent = column + 1;
     contentColumn = contentIndent;
   } else {
-    // Paren is mid-line - align to column after paren
-    contentColumn = column + 1;
-    contentIndent = contentColumn;
+    // Line contains content - indent 2 spaces (full indent)
+    contentIndent = column + options.indentSize;
+    contentColumn = contentIndent;
   }
 
   const innerStr = print(node.expression as ast.AstNode, options, contentIndent, contentColumn);
