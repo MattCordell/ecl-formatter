@@ -21,6 +21,7 @@ import {
  * @param node - AST node to print
  * @param options - Formatting options (defaults to 2-space indentation)
  * @param indent - Current indentation level (internal, defaults to 0)
+ * @param column - Current column position on the line (for alignment, defaults to indent)
  * @returns Formatted ECL string representation of the AST node
  *
  * @throws Error if unknown AST node type is encountered
@@ -38,19 +39,18 @@ import {
 export function print(
   node: ast.AstNode,
   options: FormattingOptions = defaultOptions,
-  indent: number = 0
+  indent: number = 0,
+  column: number = indent
 ): string {
-  const spaces = " ".repeat(indent);
-
   switch (node.type) {
     case "CompoundExpression":
-      return printCompound(node as ast.CompoundExpression, options, indent);
+      return printCompound(node as ast.CompoundExpression, options, indent, column);
 
     case "RefinedExpression":
-      return printRefined(node as ast.RefinedExpression, options, indent);
+      return printRefined(node as ast.RefinedExpression, options, indent, column);
 
     case "SubExpression":
-      return printSubExpression(node as ast.SubExpression, options, indent);
+      return printSubExpression(node as ast.SubExpression, options, indent, column);
 
     case "ConceptReference":
       return printConceptReference(node as ast.ConceptReference);
@@ -62,25 +62,25 @@ export function print(
       return printAlternateIdentifier(node as ast.AlternateIdentifier);
 
     case "NestedExpression":
-      return printNestedExpression(node as ast.NestedExpression, options, indent);
+      return printNestedExpression(node as ast.NestedExpression, options, indent, column);
 
     case "ConstraintOperator":
       return printConstraintOperator(node as ast.ConstraintOperator);
 
     case "Refinement":
-      return printRefinement(node as ast.Refinement, options, indent);
+      return printRefinement(node as ast.Refinement, options, indent, column);
 
     case "AttributeGroup":
-      return printAttributeGroup(node as ast.AttributeGroup, options, indent);
+      return printAttributeGroup(node as ast.AttributeGroup, options, indent, column);
 
     case "Attribute":
-      return printAttribute(node as ast.Attribute, options, indent);
+      return printAttribute(node as ast.Attribute, options, indent, column);
 
     case "Cardinality":
       return printCardinality(node as ast.Cardinality);
 
     case "Filter":
-      return printFilter(node as ast.Filter, options, indent);
+      return printFilter(node as ast.Filter, options, indent, column);
 
     case "StringValue":
       return `"${(node as ast.StringValue).value}"`;
@@ -99,18 +99,21 @@ export function print(
 function printCompound(
   node: ast.CompoundExpression,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   const shouldBreak = shouldBreakCompound(node);
-  const leftStr = print(node.left as ast.AstNode, options, indent);
+  const leftStr = print(node.left as ast.AstNode, options, indent, column);
   const nextIndent = indent + options.indentSize;
 
   if (shouldBreak) {
-    const rightStr = print(node.right as ast.AstNode, options, nextIndent);
+    const rightStr = print(node.right as ast.AstNode, options, nextIndent, nextIndent);
     const spaces = " ".repeat(indent);
     return `${leftStr}\n${spaces}${node.operator}\n${" ".repeat(nextIndent)}${rightStr}`;
   } else {
-    const rightStr = print(node.right as ast.AstNode, options, indent);
+    const leftLength = leftStr.length;
+    const rightColumn = column + leftLength + 1 + node.operator.length + 1; // +1 for spaces
+    const rightStr = print(node.right as ast.AstNode, options, indent, rightColumn);
     return `${leftStr} ${node.operator} ${rightStr}`;
   }
 }
@@ -118,17 +121,20 @@ function printCompound(
 function printRefined(
   node: ast.RefinedExpression,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
-  const exprStr = print(node.expression, options, indent);
+  const exprStr = print(node.expression, options, indent, column);
   const shouldBreak = shouldBreakRefinement(node.refinement);
 
   if (shouldBreak) {
     const nextIndent = indent + options.indentSize;
-    const refinementStr = printRefinement(node.refinement, options, nextIndent);
+    const refinementStr = printRefinement(node.refinement, options, nextIndent, nextIndent);
     return `${exprStr}:\n${refinementStr}`;
   } else {
-    const refinementStr = printRefinement(node.refinement, options, indent);
+    const exprLength = exprStr.length;
+    const refinementColumn = column + exprLength + 2; // +2 for ": "
+    const refinementStr = printRefinement(node.refinement, options, indent, refinementColumn);
     return `${exprStr}: ${refinementStr}`;
   }
 }
@@ -136,19 +142,27 @@ function printRefined(
 function printSubExpression(
   node: ast.SubExpression,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   let result = "";
+  let currentColumn = column;
 
   if (node.constraintOperator) {
-    result += printConstraintOperator(node.constraintOperator) + " ";
+    const op = printConstraintOperator(node.constraintOperator);
+    result += op + " ";
+    currentColumn += op.length + 1;
   }
 
-  result += print(node.focusConcept as ast.AstNode, options, indent);
+  const focusStr = print(node.focusConcept as ast.AstNode, options, indent, currentColumn);
+  result += focusStr;
+  currentColumn += focusStr.length;
 
   if (node.filters && node.filters.length > 0) {
     for (const filter of node.filters) {
-      result += " " + printFilter(filter, options, indent);
+      const filterStr = printFilter(filter, options, indent, currentColumn + 1);
+      result += " " + filterStr;
+      currentColumn += 1 + filterStr.length;
     }
   }
 
@@ -173,10 +187,31 @@ function printAlternateIdentifier(node: ast.AlternateIdentifier): string {
 function printNestedExpression(
   node: ast.NestedExpression,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
-  const innerStr = print(node.expression as ast.AstNode, options, indent);
-  return `(${innerStr})`;
+  // Opening paren is at current column
+  // Content starts on next line
+  // - If paren is at the start of a line (column == indent), indent by one level
+  // - If paren is in the middle of a line, align to column after the paren
+  let contentIndent: number;
+  let contentColumn: number;
+
+  if (column === indent) {
+    // Paren is at start of line - use standard indentation
+    contentIndent = indent + options.indentSize;
+    contentColumn = contentIndent;
+  } else {
+    // Paren is mid-line - align to column after paren
+    contentColumn = column + 1;
+    contentIndent = contentColumn;
+  }
+
+  const innerStr = print(node.expression as ast.AstNode, options, contentIndent, contentColumn);
+
+  // Closing paren aligns with opening paren
+  const closingSpaces = " ".repeat(column);
+  return `(\n${" ".repeat(contentColumn)}${innerStr}\n${closingSpaces})`;
 }
 
 function printConstraintOperator(node: ast.ConstraintOperator): string {
@@ -208,7 +243,8 @@ function printConstraintOperator(node: ast.ConstraintOperator): string {
 function printRefinement(
   node: ast.Refinement,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   const spaces = " ".repeat(indent);
   const shouldBreak = shouldBreakRefinement(node);
@@ -216,7 +252,7 @@ function printRefinement(
   if (shouldBreak) {
     const parts: string[] = [];
     for (let i = 0; i < node.items.length; i++) {
-      const itemStr = print(node.items[i] as ast.AstNode, options, indent);
+      const itemStr = print(node.items[i] as ast.AstNode, options, indent, indent);
       parts.push(spaces + itemStr);
     }
 
@@ -228,9 +264,19 @@ function printRefinement(
     }
     return result;
   } else {
-    const parts = node.items.map((item) =>
-      print(item as ast.AstNode, options, indent)
-    );
+    let currentColumn = column;
+    const parts: string[] = [];
+    for (let i = 0; i < node.items.length; i++) {
+      const itemStr = print(node.items[i] as ast.AstNode, options, indent, currentColumn);
+      parts.push(itemStr);
+      currentColumn += itemStr.length;
+
+      if (i < node.items.length - 1) {
+        const conj = node.conjunctions[i] || ",";
+        const conjStr = conj === "," ? ", " : " " + conj + " ";
+        currentColumn += conjStr.length;
+      }
+    }
 
     // Join with conjunctions
     let result = parts[0];
@@ -245,7 +291,8 @@ function printRefinement(
 function printAttributeGroup(
   node: ast.AttributeGroup,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   const shouldBreak = shouldBreakAttributeGroup(node);
 
@@ -260,7 +307,7 @@ function printAttributeGroup(
     const parts: string[] = [];
 
     for (const attr of node.attributes) {
-      parts.push(innerSpaces + printAttribute(attr, options, innerIndent));
+      parts.push(innerSpaces + printAttribute(attr, options, innerIndent, innerIndent));
     }
 
     // Join with conjunctions
@@ -273,9 +320,20 @@ function printAttributeGroup(
     const spaces = " ".repeat(indent);
     return `${cardinalityStr}{\n${inner}\n${spaces}}`;
   } else {
-    const parts = node.attributes.map((attr) =>
-      printAttribute(attr, options, indent)
-    );
+    let currentColumn = column + cardinalityStr.length + 2; // "{ "
+    const parts: string[] = [];
+
+    for (let i = 0; i < node.attributes.length; i++) {
+      const attrStr = printAttribute(node.attributes[i], options, indent, currentColumn);
+      parts.push(attrStr);
+      currentColumn += attrStr.length;
+
+      if (i < node.attributes.length - 1) {
+        const conj = node.conjunctions[i] || ",";
+        const conjStr = conj === "," ? ", " : " " + conj + " ";
+        currentColumn += conjStr.length;
+      }
+    }
 
     let inner = parts[0];
     for (let i = 1; i < parts.length; i++) {
@@ -290,21 +348,32 @@ function printAttributeGroup(
 function printAttribute(
   node: ast.Attribute,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   let result = "";
+  let currentColumn = column;
 
   if (node.cardinality) {
-    result += printCardinality(node.cardinality) + " ";
+    const card = printCardinality(node.cardinality);
+    result += card + " ";
+    currentColumn += card.length + 1;
   }
 
   if (node.reverseFlag) {
     result += "R ";
+    currentColumn += 2;
   }
 
-  result += print(node.name as ast.AstNode, options, indent);
+  const nameStr = print(node.name as ast.AstNode, options, indent, currentColumn);
+  result += nameStr;
+  currentColumn += nameStr.length;
+
   result += ` ${node.comparator} `;
-  result += print(node.value as ast.AstNode, options, indent);
+  currentColumn += 1 + node.comparator.length + 1;
+
+  const valueStr = print(node.value as ast.AstNode, options, indent, currentColumn);
+  result += valueStr;
 
   return result;
 }
@@ -318,10 +387,11 @@ function printCardinality(node: ast.Cardinality): string {
 function printFilter(
   node: ast.Filter,
   options: FormattingOptions,
-  indent: number
+  indent: number,
+  column: number
 ): string {
   const constraints = node.constraints.map((c) =>
-    printFilterConstraint(c, options, indent)
+    printFilterConstraint(c, options, indent, column)
   );
 
   let result = constraints[0];
@@ -335,8 +405,9 @@ function printFilter(
 
 function printFilterConstraint(
   node: ast.FilterConstraint,
-  options: FormattingOptions,
-  indent: number
+  _options: FormattingOptions,
+  _indent: number,
+  _column: number
 ): string {
   switch (node.type) {
     case "TermFilter": {
