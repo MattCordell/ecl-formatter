@@ -39,3 +39,13 @@ Press F5 in VS Code to launch the Extension Development Host for testing.
 
 - Specification: https://docs.snomed.org/snomed-ct-specifications/snomed-ct-expression-constraint-language
 - ANTLR Grammar: https://github.com/IHTSDO/snomed-expression-constraint-language
+
+## Contributing
+
+When making changes to this codebase, please follow the guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+**Key documentation requirements:**
+- Parser rules must have JSDoc explaining grammar and examples
+- Lexer tokens must have JSDoc explaining pattern and usage
+- Public API functions must have JSDoc with examples and parameter docs
+- Maintain token ordering rules in lexer.ts (longest-match first)

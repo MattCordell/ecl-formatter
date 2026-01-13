@@ -12,7 +12,28 @@ import {
 } from "./rules";
 
 /**
- * Print an AST node as a formatted ECL string
+ * Converts an ECL AST node into formatted text.
+ *
+ * This is the core pretty-printer that traverses the AST and generates
+ * formatted ECL text according to formatting rules. Uses complexity detection
+ * to decide when to break expressions across multiple lines.
+ *
+ * @param node - AST node to print
+ * @param options - Formatting options (defaults to 2-space indentation)
+ * @param indent - Current indentation level (internal, defaults to 0)
+ * @returns Formatted ECL string representation of the AST node
+ *
+ * @throws Error if unknown AST node type is encountered
+ *
+ * @example
+ * ```typescript
+ * const ast: ast.SubExpression = {
+ *   type: "SubExpression",
+ *   focusConcept: { type: "ConceptReference", sctId: "404684003" }
+ * };
+ * const formatted = print(ast, { indentSize: 2 });
+ * // Output: "404684003"
+ * ```
  */
 export function print(
   node: ast.AstNode,
