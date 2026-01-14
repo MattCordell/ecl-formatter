@@ -1,0 +1,54 @@
+# Source files (only include compiled dist/)
+src/**
+*.ts
+!dist/**
+
+# Tests
+src/test/**
+**/*.test.ts
+**/*.test.js
+
+# Web formatter (for GitHub Pages, not needed in extension)
+docs/**
+esbuild.web.config.js
+
+# Development files
+.vscode/**
+.vscode-test/**
+.github/**
+.claude/**
+*.code-workspace
+
+# Build files
+node_modules/**
+.eslintrc.json
+tsconfig.json
+esbuild.config.js
+
+# Documentation and samples
+samples/**
+*.md
+!README.md
+CONTRIBUTING.md
+CLAUDE.md
+
+# Git files
+.git/**
+.gitignore
+.gitattributes
+
+# Logs and temp files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+coverage/**
+.nyc_output/**
+
+# Other
+*.vsix
+test-format.js
+test-format.ts
+NUL
