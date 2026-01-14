@@ -30,11 +30,36 @@ export const defaultOptions: FormattingOptions = {
  *
  * This is used to decide when to break compound expressions onto multiple lines.
  */
+/**
+ * Counts the number of operands in a flat compound expression chain
+ * (e.g., "A OR B OR C OR D" has 4 operands)
+ */
+function countCompoundChainLength(node: ast.CompoundExpression): number {
+  let count = 1; // Count the right operand
+
+  // Traverse left side to count all operands in the chain
+  let current: ast.AstNode = node.left;
+  while (current.type === "CompoundExpression") {
+    count++;
+    current = (current as ast.CompoundExpression).left;
+  }
+  count++; // Count the leftmost operand
+
+  return count;
+}
+
 export function isComplex(node: ast.AstNode): boolean {
   switch (node.type) {
     case "CompoundExpression": {
-      // Compound expressions are only complex if their operands are complex
       const compound = node as ast.CompoundExpression;
+
+      // Compound expressions with many operands should break
+      // (e.g., "A OR B OR C OR D OR E" is too long for one line)
+      if (countCompoundChainLength(compound) > 2) {
+        return true;
+      }
+
+      // Otherwise, only complex if operands are complex
       return (
         isComplex(compound.left as ast.AstNode) ||
         isComplex(compound.right as ast.AstNode)
