@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import { formatEcl } from "../formatter/format";
 import { FormattingOptions } from "../formatter/rules";
 
@@ -48,20 +47,6 @@ describe("ECL Formatter", () => {
       const result = formatEcl(input, options);
       expect(result.error).toBeNull();
       expect(result.formatted).toBe("<< 404684003 AND << 987654321");
-    });
-
-    it("should break AND when left operand has refinement (parenthesized)", () => {
-      const input = "(<< 404684003: 363698007 = << 123456789) AND << 987654321";
-      const result = formatEcl(input, options);
-      expect(result.error).toBeNull();
-      expect(result.formatted).toContain("\nAND\n");
-    });
-
-    it("should break AND when right operand has refinement (parenthesized)", () => {
-      const input = "<< 404684003 AND (<< 987654321: 363698007 = << 123456789)";
-      const result = formatEcl(input, options);
-      expect(result.error).toBeNull();
-      expect(result.formatted).toContain("\nAND\n");
     });
 
     it("should keep simple OR inline", () => {

@@ -1,4 +1,3 @@
-import { describe, it, expect } from "vitest";
 import { parseEcl } from "../parser";
 
 describe("ECL Parser", () => {
@@ -158,7 +157,7 @@ describe("ECL Parser", () => {
         filters: [
           {
             type: "Filter",
-            constraints: [{ type: "TermFilter", value: "heart" }],
+            constraints: [{ type: "TermFilter", values: ["heart"] }],
           },
         ],
       });
