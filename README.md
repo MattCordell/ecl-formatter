@@ -9,6 +9,19 @@ A Visual Studio Code extension that provides syntax highlighting and document fo
 - **Range Formatting**: Format selected text regions
 - **Idempotent**: Formatting the same text multiple times produces identical results
 
+## Web Formatter
+
+Try the online ECL formatter: https://mattcordell.github.io/ecl-formatter/
+
+Format ECL expressions directly in your browser without installing the extension. The web version uses the same formatting logic as the VS Code extension, ensuring consistent results.
+
+**Features:**
+- Format ECL expressions online
+- Copy formatted output to clipboard
+- Example expressions included
+- Mobile-friendly responsive design
+- Works in all modern browsers
+
 ## Installation
 
 ### From VSIX

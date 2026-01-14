@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNOMED CT ECL Formatter</title>
+  <meta name="description" content="Format SNOMED CT Expression Constraint Language expressions online">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SNOMED CT ECL Formatter</h1>
+    <p>Format Expression Constraint Language expressions online</p>
+  </header>
+
+  <main>
+    <section class="input-section">
+      <label for="input">ECL Expression:</label>
+      <textarea id="input" rows="10" placeholder="Paste ECL expression here..." spellcheck="false"></textarea>
+      <div class="input-actions">
+        <button id="format-btn" class="primary">Format</button>
+        <button id="clear-btn">Clear</button>
+        <button id="example-btn">Load Example</button>
+      </div>
+    </section>
+
+    <section class="output-section">
+      <label for="output">Formatted Output:</label>
+      <div id="error-display" class="error hidden"></div>
+      <textarea id="output" rows="10" readonly spellcheck="false"></textarea>
+      <div class="output-actions">
+        <button id="copy-btn" class="primary">Copy to Clipboard</button>
+      </div>
+    </section>
+
+    <section class="examples">
+      <details>
+        <summary>Example ECL Expressions</summary>
+        <ul id="examples-list"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Powered by the
+      <a href="https://github.com/MattCordell/ecl-formatter">ECL Formatter</a> |
+      <a href="https://docs.snomed.org/snomed-ct-specifications/snomed-ct-expression-constraint-language">ECL Specification</a>
+    </p>
+  </footer>
+
+  <script src="ecl-formatter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -57,6 +57,8 @@
     "vscode:prepublish": "npm run build -- --production",
     "build": "node esbuild.config.js",
     "watch": "node esbuild.config.js --watch",
+    "build:web": "node esbuild.web.config.js --production",
+    "watch:web": "node esbuild.web.config.js --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext ts",
