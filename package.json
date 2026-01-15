@@ -2,7 +2,7 @@
   "name": "ecl-formatter",
   "displayName": "SNOMED CT ECL Formatter",
   "description": "Syntax highlighting and formatting for SNOMED CT Expression Constraint Language (ECL)",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "MattCordell",
   "repository": {
     "type": "git",
