@@ -140,3 +140,67 @@ Multiple filter constraints:
 ```ecl
 << 404684003 {{ term = "heart", dialect = en-US }}
 ```
+
+## Reverse Attributes
+
+Reverse attributes allow navigation of relationships in reverse direction using either the brief `R` syntax or the long `reverseOf` keyword.
+
+### Brief Syntax
+
+```ecl
+< 91723000 : R 363698007 = < 125605004
+```
+
+### Long Syntax
+
+The `reverseOf` keyword is normalized to the brief `R` form:
+
+```ecl
+// Input
+< 91723000 : reverseOf 363698007 = < 125605004
+
+// Output
+< 91723000 : R 363698007 = < 125605004
+```
+
+### With Cardinality
+
+```ecl
+<< 404684003: [1..*] R 363698007 = << 39057004
+```
+
+### Multiple Reverse Attributes
+
+```ecl
+<< 404684003:
+  R 363698007 = << 39057004,
+  R 116676008 = << 55641003
+```
+
+## Dotted Attributes
+
+Dotted attribute notation allows chained attribute navigation. Each component is separated by dots with spaces: ` . `
+
+### Simple Dotted Path
+
+```ecl
+< 125605004 . 363698007
+```
+
+### Chained Dotted Attributes
+
+```ecl
+<< 19829001 . < 47429007 . 363698007
+```
+
+### With Constraint Operators
+
+```ecl
+< 125605004 . << 363698007
+```
+
+### Nested with Parentheses
+
+```ecl
+((< 19829001) . < 47429007) . 363698007
+```

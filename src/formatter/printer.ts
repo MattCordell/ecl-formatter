@@ -77,6 +77,9 @@ export function print(
     case "Attribute":
       return printAttribute(node as ast.Attribute, options, indent, column);
 
+    case "DottedAttributePath":
+      return printDottedAttributePath(node as ast.DottedAttributePath, options, indent, column);
+
     case "Cardinality":
       return printCardinality(node as ast.Cardinality);
 
@@ -414,6 +417,47 @@ function printAttribute(
 
   const valueStr = print(node.value as ast.AstNode, options, indent, currentColumn);
   result += valueStr;
+
+  return result;
+}
+
+/**
+ * Prints a dotted attribute path.
+ *
+ * Dotted notation allows chained attribute navigation (e.g., x . a . b).
+ * Each component is a sub-expression separated by dots with spaces.
+ * Semantically equivalent to reverse syntax: x . a = * : R a = x
+ *
+ * @param node - DottedAttributePath AST node with base and chained attributes
+ * @param options - Formatting options (for nested expressions)
+ * @param indent - Current indentation level
+ * @param column - Current column position for alignment
+ * @returns Formatted dotted path string
+ *
+ * @example
+ * Input: { base: SubExpr(< 125605004), attributes: [SubExpr(363698007)] }
+ * Output: "< 125605004 . 363698007"
+ *
+ * @example
+ * Input: { base: SubExpr(<< 19829001), attributes: [SubExpr(< 47429007), SubExpr(363698007)] }
+ * Output: "<< 19829001 . < 47429007 . 363698007"
+ */
+function printDottedAttributePath(
+  node: ast.DottedAttributePath,
+  options: FormattingOptions,
+  indent: number,
+  column: number
+): string {
+  let result = print(node.base as ast.AstNode, options, indent, column);
+  let currentColumn = column + result.length;
+
+  for (const attr of node.attributes) {
+    result += " . ";
+    currentColumn += 3;
+    const attrStr = print(attr as ast.AstNode, options, indent, currentColumn);
+    result += attrStr;
+    currentColumn += attrStr.length;
+  }
 
   return result;
 }

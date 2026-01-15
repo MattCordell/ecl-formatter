@@ -1,7 +1,25 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(npx vitest:*)",
+      "Bash(node -e:*)",
+      "Bash(gh issue create --repo MattCordell/ecl-formatter --title \"Create GitHub Pages web interface for ECL formatting\" --body \"$\\(cat <<''EOF''\n## Description\nCreate a simple web page hosted on GitHub Pages that provides browser-based ECL formatting using the same rules as the VS Code extension.\n\n## Features\n- Single-page application with minimal dependencies\n- Text input area for pasting ECL expressions\n- \"Format\" button to apply formatting\n- Formatted output displayed in a result area\n- Copy-to-clipboard functionality for the result\n\n## Technical Approach\n- Bundle the parser and formatter for browser use \\(esbuild with browser target\\)\n- Host on GitHub Pages from `/docs` folder or `gh-pages` branch\n- Pure HTML/CSS/JS - no framework required\n\n## UI Mockup\n```\n┌─────────────────────────────────────────────┐\n│  ECL Formatter                              │\n├─────────────────────────────────────────────┤\n│  ┌───────────────────────────────────────┐  │\n│  │ Paste ECL expression here...          │  │\n│  │                                       │  │\n│  │                                       │  │\n│  └───────────────────────────────────────┘  │\n│                                             │\n│  [ Format ]                                 │\n│                                             │\n│  ┌───────────────────────────────────────┐  │\n│  │ Formatted output appears here...      │  │\n│  │                                       │  │\n│  │                                       │  │\n│  └───────────────────────────────────────┘  │\n│                                   [ Copy ]  │\n└─────────────────────────────────────────────┘\n```\n\n## Acceptance Criteria\n- [ ] Page loads and renders correctly\n- [ ] Format button applies same rules as VS Code extension\n- [ ] Error messages displayed for invalid ECL\n- [ ] Works in modern browsers \\(Chrome, Firefox, Safari, Edge\\)\n- [ ] Responsive design for mobile use\nEOF\n\\)\")",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(git push:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(gh issue close:*)",
+      "Bash(npm run build:web:*)",
+      "Bash(git add:*)"
     ]
   }
 }

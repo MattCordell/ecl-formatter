@@ -63,12 +63,23 @@ export interface ConstraintOperator extends AstNode {
     | "memberOf";
 }
 
-// Focus concept: concept reference, wildcard, or nested expression
+// Dotted attribute path: base.attribute1.attribute2...
+// Represents chained attribute navigation (e.g., < 125605004 . 363698007)
+// Semantically equivalent to reverse syntax: x . a = * : R a = x
+// Forward declaration needed before FocusConcept
+export interface DottedAttributePath extends AstNode {
+  type: "DottedAttributePath";
+  base: SubExpression;  // Starting expression
+  attributes: SubExpression[];  // Chained attributes (at least one)
+}
+
+// Focus concept: concept reference, wildcard, nested expression, or dotted path
 export type FocusConcept =
   | ConceptReference
   | WildcardConcept
   | AlternateIdentifier
-  | NestedExpression;
+  | NestedExpression
+  | DottedAttributePath;
 
 // Concept reference with SCTID and optional term
 export interface ConceptReference extends AstNode {
@@ -122,9 +133,10 @@ export interface Attribute extends AstNode {
   value: AttributeValue;
 }
 
-// Attribute name: concept reference or wildcard
+// Attribute name: concept reference, wildcard, or dotted path
 // Attribute name can be a full sub-expression (e.g., << 127489000)
-export type AttributeName = SubExpression;
+// or a dotted attribute path (e.g., x . a . b)
+export type AttributeName = SubExpression | DottedAttributePath;
 
 // Attribute value: expression constraint or concrete value
 export type AttributeValue =

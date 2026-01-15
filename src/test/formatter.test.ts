@@ -166,6 +166,90 @@ describe("ECL Formatter", () => {
     });
   });
 
+  describe("Reverse attribute flags", () => {
+    it("should parse and format brief reverse flag (R)", () => {
+      const input = "<< 404684003: R 363698007 = << 39057004";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("R 363698007");
+    });
+
+    it("should accept lowercase r and normalize to uppercase R", () => {
+      const input = "<< 404684003: r 363698007 = << 39057004";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("R 363698007");
+    });
+
+    it("should parse long-form reverseOf keyword", () => {
+      const input = "<< 404684003: reverseOf 363698007 = << 39057004";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("R 363698007");
+    });
+
+    it("should handle reverse flag with cardinality", () => {
+      const input = "<< 404684003: [1..*] R 363698007 = << 39057004";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("[1..*] R 363698007");
+    });
+
+    it("should format complex example from ECL spec", () => {
+      const input = "< 91723000 : R 363698007 = < 125605004";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("R 363698007");
+    });
+
+    it("should handle multiple reverse attributes", () => {
+      const input = "<< 404684003 : R 363698007 = << 39057004, R 116676008 = << 55641003";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("R 363698007");
+      expect(result.formatted).toContain("R 116676008");
+    });
+  });
+
+  describe("Dotted attributes", () => {
+    it("should parse simple dotted attribute", () => {
+      const input = "< 125605004 . 363698007";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain(" . ");
+    });
+
+    it("should parse chained dotted attributes", () => {
+      const input = "<< 19829001 . < 47429007 . 363698007";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain(" . ");
+      // Should have two dots
+      expect((result.formatted?.match(/\s\.\s/g) || []).length).toBe(2);
+    });
+
+    it("should handle dotted with constraint operators", () => {
+      const input = "< 125605004 . << 363698007";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("< 125605004 . << 363698007");
+    });
+
+    it("should format dotted path from ECL spec example", () => {
+      const input = "< 27658006 . 127489000";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain(" . ");
+    });
+
+    it("should handle nested parentheses with dots", () => {
+      const input = "((< 19829001) . < 47429007) . 363698007";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain(" . ");
+    });
+  });
+
   describe("Nested expressions", () => {
     it("should preserve parentheses", () => {
       const input = "(<< 404684003)";

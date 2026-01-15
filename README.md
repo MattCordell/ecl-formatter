@@ -83,6 +83,18 @@ SNOMED CT Expression Constraint Language (ECL) is a formal language for defining
 
 // With filters
 << 404684003 {{ term = "heart" }}
+
+// Reverse attribute (brief syntax)
+< 91723000 : R 363698007 = < 125605004
+
+// Reverse attribute (long syntax)
+< 91723000 : reverseOf 363698007 = < 125605004
+
+// Dotted attribute
+< 125605004 . 363698007
+
+// Chained dotted attributes
+<< 19829001 . < 47429007 . 363698007
 ```
 
 ## Architecture

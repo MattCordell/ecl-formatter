@@ -22,6 +22,7 @@ import {
   ParentOfKeyword,
   ParentOrSelfOfKeyword,
   MemberOfKeyword,
+  ReverseOf,
   // Logical
   And,
   Or,
@@ -43,6 +44,7 @@ import {
   Colon,
   Comma,
   Hash,
+  Dot,
   DotDot,
   Pipe,
   // Literals
@@ -157,19 +159,24 @@ export class EclParser extends CstParser {
   });
 
   /**
-   * Parses a sub-expression constraint.
+   * Parses a sub-expression constraint, optionally with dotted attribute path.
    *
    * This is a core building block consisting of an optional constraint operator (e.g., <<, <),
    * a focus concept (SCTID, wildcard, nested expression, or alternate ID), and optional filter
    * constraints. The constraint operator defines the relationship (descendant, ancestor, etc.)
    * to the focus concept.
    *
-   * @grammar subExpressionConstraint ::= constraintOperator? eclFocusConcept filterConstraint*
+   * Dotted expressions allow chained attribute navigation (e.g., x . a . b), which is semantically
+   * equivalent to reverse attribute syntax: x . a = * : R a = x
+   *
+   * @grammar subExpressionConstraint ::= constraintOperator? eclFocusConcept filterConstraint* (dot eclAttributeName)*
    *
    * @example
    * - `<< 73211009 |Diabetes mellitus|` (descendant-or-self constraint)
    * - `* {{ term = "disorder" }}` (wildcard with term filter)
    * - `descendantOf 404684003 |Clinical finding|` (long-form constraint operator)
+   * - `< 125605004 . 363698007` (dotted notation - single dot)
+   * - `<< 19829001 . < 47429007 . 363698007` (dotted notation - chained)
    */
   private subExpressionConstraint = this.RULE("subExpressionConstraint", () => {
     this.OPTION(() => {
@@ -178,6 +185,10 @@ export class EclParser extends CstParser {
     this.SUBRULE(this.eclFocusConcept);
     this.MANY(() => {
       this.SUBRULE(this.filterConstraint);
+    });
+    this.MANY2(() => {
+      this.CONSUME(Dot);
+      this.SUBRULE(this.eclAttributeName);
     });
   });
 
@@ -397,33 +408,49 @@ export class EclParser extends CstParser {
   });
 
   /**
-   * Parses a single attribute constraint.
+   * Parses a single attribute constraint with optional reverse flag.
    *
    * An attribute constraint is a triple consisting of an attribute name, a comparator, and a value.
+   * Optionally preceded by a reverse flag ('R' or 'reverseOf') that reverses the relationship direction.
    * This represents a relationship constraint in SNOMED CT's compositional grammar, allowing
    * concepts to be refined by specifying required attribute-value relationships.
    *
-   * @grammar eclAttribute ::= eclAttributeName comparator eclAttributeValue
+   * @grammar eclAttribute ::= (reverseFlag)? eclAttributeName comparator eclAttributeValue
+   * @grammar reverseFlag ::= 'R' | 'reverseOf'
    *
    * @example
-   * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (attribute equals descendant-or-self constraint)
+   * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (no reverse)
+   * - `R 363698007 = << 125605004` (brief reverse syntax)
+   * - `reverseOf 363698007 = << 125605004` (long reverse syntax)
    * - `<< 246075003 |Causative agent| = 387517004 |Paracetamol|` (attribute name with constraint operator)
    * - `370135005 |Pathological process| != << 441862004 |Infectious process|` (not-equals comparator)
    */
   private eclAttribute = this.RULE("eclAttribute", () => {
+    // Optional reverse flag (R or reverseOf)
+    this.OPTION(() => {
+      this.OR([
+        { ALT: () => this.CONSUME(Identifier, { LABEL: "ReverseR" }) },  // "R" identifier
+        { ALT: () => this.CONSUME(ReverseOf) },  // "reverseOf" keyword
+      ]);
+    });
+
     this.SUBRULE(this.eclAttributeName);
     this.SUBRULE(this.comparator);
     this.SUBRULE(this.eclAttributeValue);
   });
 
   /**
-   * Parses an attribute name.
+   * Parses an attribute name (without dotted paths).
    *
-   * Attribute names are sub-expression constraints, which means they can include constraint operators
-   * (like << or <) to match multiple related attributes. This powerful feature allows queries to
-   * match any attribute that is a descendant of a given concept, enabling flexible attribute matching.
+   * Attribute names are sub-expression constraints (without dotted notation), which means they can
+   * include constraint operators (like << or <) to match multiple related attributes. This powerful
+   * feature allows queries to match any attribute that is a descendant of a given concept, enabling
+   * flexible attribute matching.
    *
-   * @grammar eclAttributeName ::= subExpressionConstraint
+   * Note: This rule is similar to subExpressionConstraint but excludes dotted path notation to avoid
+   * recursion issues when used within dotted expressions.
+   *
+   * @grammar eclAttributeName ::= constraintOperator? eclFocusConcept filterConstraint*
    *
    * @example
    * - `363698007 |Finding site|` (simple attribute reference)
@@ -431,7 +458,13 @@ export class EclParser extends CstParser {
    * - `<< 363698007 |Finding site| {{ term = "pulmonary" }}` (attribute name with filter)
    */
   private eclAttributeName = this.RULE("eclAttributeName", () => {
-    this.SUBRULE(this.subExpressionConstraint);
+    this.OPTION(() => {
+      this.SUBRULE(this.constraintOperator);
+    });
+    this.SUBRULE(this.eclFocusConcept);
+    this.MANY(() => {
+      this.SUBRULE(this.filterConstraint);
+    });
   });
 
   /**

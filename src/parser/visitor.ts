@@ -140,11 +140,13 @@ export class EclAstVisitor extends BaseEclVisitor {
    * Transforms subExpressionConstraint CST node to SubExpression AST.
    *
    * Builds a complete sub-expression with optional constraint operator (e.g., <, <<),
-   * required focus concept, and optional filter constraints. This is the fundamental
-   * building block of ECL expressions.
+   * required focus concept, optional filter constraints, and optional dotted attribute paths.
    *
-   * @param ctx - CST context containing eclFocusConcept, optional constraintOperator, and optional filterConstraint array
-   * @returns SubExpression with focusConcept and optional constraintOperator and filters
+   * If dotted notation is present (e.g., x . a . b), constructs a DottedAttributePath as the
+   * focus concept, wrapping the base expression and chained attributes.
+   *
+   * @param ctx - CST context containing eclFocusConcept, optional constraintOperator, optional filterConstraint array, and optional Dot/eclAttributeName
+   * @returns SubExpression with focusConcept (possibly dotted path) and optional constraintOperator and filters
    *
    * @example
    * Input CST: "<< 404684003 |Clinical finding| {{ term = \"diabetes\" }}"
@@ -154,11 +156,60 @@ export class EclAstVisitor extends BaseEclVisitor {
    *   focusConcept: { type: "ConceptReference", sctId: "404684003", term: "Clinical finding" },
    *   filters: [{ type: "Filter", ... }]
    * }
+   *
+   * @example
+   * Input CST: "< 125605004 . 363698007"
+   * Output: {
+   *   type: "SubExpression",
+   *   focusConcept: {
+   *     type: "DottedAttributePath",
+   *     base: { type: "SubExpression", ... },
+   *     attributes: [{ type: "SubExpression", ... }]
+   *   }
+   * }
    */
   subExpressionConstraint(ctx: any): ast.SubExpression {
+    let focusConcept: ast.FocusConcept = this.visit(ctx.eclFocusConcept[0]);
+
+    // Check for dotted path notation
+    if (ctx.Dot && ctx.Dot.length > 0) {
+      // Build base SubExpression first
+      const baseSubExpr: ast.SubExpression = {
+        type: "SubExpression",
+        focusConcept,
+      };
+
+      if (ctx.constraintOperator) {
+        baseSubExpr.constraintOperator = this.visit(ctx.constraintOperator[0]);
+      }
+
+      if (ctx.filterConstraint && ctx.filterConstraint.length > 0) {
+        baseSubExpr.filters = ctx.filterConstraint.map((fc: any) => this.visit(fc));
+      }
+
+      // Extract dotted attributes
+      const attributes = ctx.eclAttributeName.map((attr: any) =>
+        this.visit(attr) as ast.SubExpression
+      );
+
+      // Create DottedAttributePath
+      const dottedPath: ast.DottedAttributePath = {
+        type: "DottedAttributePath",
+        base: baseSubExpr,
+        attributes,
+      };
+
+      // Return SubExpression with DottedAttributePath as focusConcept
+      return {
+        type: "SubExpression",
+        focusConcept: dottedPath,
+      };
+    }
+
+    // No dotted path - normal SubExpression
     const result: ast.SubExpression = {
       type: "SubExpression",
-      focusConcept: this.visit(ctx.eclFocusConcept[0]),
+      focusConcept,
     };
 
     if (ctx.constraintOperator) {
@@ -482,24 +533,42 @@ export class EclAstVisitor extends BaseEclVisitor {
    * Transforms eclAttribute CST node to Attribute AST.
    *
    * An attribute is a name-value pair with a comparator (e.g., attributeName = value).
-   * Attributes constrain relationships in SNOMED CT expressions. Delegates to child
-   * visitor methods for each component.
+   * Attributes constrain relationships in SNOMED CT expressions. Can optionally include
+   * a reverse flag (R or reverseOf) to navigate relationships in reverse direction.
+   * Delegates to child visitor methods for each component.
    *
-   * @param ctx - CST context containing eclAttributeName, comparator, and eclAttributeValue
-   * @returns Attribute with name (SubExpression), comparator string, and value (various types)
+   * @param ctx - CST context containing optional reverse flag, eclAttributeName, comparator, and eclAttributeValue
+   * @returns Attribute with optional reverseFlag boolean, name (SubExpression), comparator string, and value (various types)
    *
    * @example
-   * Input CST: "363698007 = 123456789"
+   * Input CST: "R 363698007 = 123456789"
    * Output: {
    *   type: "Attribute",
+   *   reverseFlag: true,
    *   name: { type: "SubExpression", focusConcept: {...} },
    *   comparator: "=",
    *   value: { type: "SubExpression", focusConcept: {...} }
    * }
    */
   eclAttribute(ctx: any): ast.Attribute {
+    let reverseFlag = false;
+
+    // Check for reverse flag: ReverseOf keyword or "R" identifier
+    if (ctx.ReverseOf) {
+      reverseFlag = true;
+    } else if (ctx.ReverseR) {
+      // Validate that Identifier is "R" (case-insensitive)
+      const ident = ctx.ReverseR[0].image;
+      if (ident.toUpperCase() === 'R') {
+        reverseFlag = true;
+      } else {
+        throw new Error(`Invalid reverse flag identifier: ${ident}. Expected 'R'.`);
+      }
+    }
+
     return {
       type: "Attribute",
+      reverseFlag: reverseFlag || undefined,  // Only include if true
       name: this.visit(ctx.eclAttributeName[0]),
       comparator: this.visit(ctx.comparator[0]),
       value: this.visit(ctx.eclAttributeValue[0]),
@@ -510,10 +579,10 @@ export class EclAstVisitor extends BaseEclVisitor {
    * Transforms eclAttributeName CST node to AttributeName (SubExpression) AST.
    *
    * Attribute names are sub-expressions that identify SNOMED CT relationship types.
-   * This method simply unwraps the CST node and delegates to subExpressionConstraint,
-   * allowing attribute names to include constraint operators (e.g., << 123456789).
+   * This builds a SubExpression from the constraint operator, focus concept, and filters,
+   * similar to subExpressionConstraint but without dotted path support.
    *
-   * @param ctx - CST context containing subExpressionConstraint
+   * @param ctx - CST context containing optional constraintOperator, eclFocusConcept, and optional filterConstraints
    * @returns SubExpression representing the attribute name
    *
    * @example
@@ -525,7 +594,20 @@ export class EclAstVisitor extends BaseEclVisitor {
    * }
    */
   eclAttributeName(ctx: any): ast.AttributeName {
-    return this.visit(ctx.subExpressionConstraint[0]) as ast.SubExpression;
+    const result: ast.SubExpression = {
+      type: "SubExpression",
+      focusConcept: this.visit(ctx.eclFocusConcept[0]),
+    };
+
+    if (ctx.constraintOperator) {
+      result.constraintOperator = this.visit(ctx.constraintOperator[0]);
+    }
+
+    if (ctx.filterConstraint && ctx.filterConstraint.length > 0) {
+      result.filters = ctx.filterConstraint.map((fc: any) => this.visit(fc));
+    }
+
+    return result;
   }
 
   /**

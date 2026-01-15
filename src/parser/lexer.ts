@@ -445,6 +445,24 @@ export const MemberOfKeyword = createToken({
 });
 
 /**
+ * ReverseOf keyword for reverse attribute navigation (long-form, case-insensitive).
+ *
+ * Brief syntax uses 'R' which is captured as Identifier.
+ * Long syntax uses 'reverseOf' keyword. Both uppercase and lowercase variants accepted.
+ *
+ * Used in refinements to reverse attribute relationship direction.
+ * Reverses the attribute navigation: instead of "X has attribute Y", expresses "Y is attribute of X".
+ *
+ * @example reverseOf 363698007 |Finding site|
+ * @example << 91723000 : reverseOf 363698007 = << 125605004
+ * @pattern /reverseOf/i
+ */
+export const ReverseOf = createToken({
+  name: "ReverseOf",
+  pattern: /reverseOf/i,
+});
+
+/**
  * Term filter keyword.
  *
  * Used in description filters to match against concept term text.
@@ -1006,6 +1024,7 @@ export const allTokens = [
   ParentOrSelfOfKeyword,
   ParentOfKeyword,
   MemberOfKeyword,
+  ReverseOf,
 
   // Filter keywords
   DefinitionStatusId,
