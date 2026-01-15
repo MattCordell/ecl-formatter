@@ -77,11 +77,23 @@ function handleFormat() {
     if (result.error) {
       showError(result.error);
       outputEl.value = '';
+      // Track format errors
+      if (window.goatcounter) {
+        window.goatcounter.count({ path: 'event-format-error', title: 'Format Error', event: true });
+      }
     } else {
       outputEl.value = result.formatted;
+      // Track successful format
+      if (window.goatcounter) {
+        window.goatcounter.count({ path: 'event-format-success', title: 'Format Success', event: true });
+      }
     }
   } catch (error) {
     showError(`Unexpected error: ${error.message}`);
+    // Track unexpected errors
+    if (window.goatcounter) {
+      window.goatcounter.count({ path: 'event-format-exception', title: 'Format Exception', event: true });
+    }
   }
 }
 
@@ -97,11 +109,19 @@ async function handleCopy() {
   try {
     await navigator.clipboard.writeText(text);
     showSuccess('Copied to clipboard!');
+    // Track copy action
+    if (window.goatcounter) {
+      window.goatcounter.count({ path: 'event-copy', title: 'Copy to Clipboard', event: true });
+    }
   } catch (err) {
     // Fallback for older browsers
     outputEl.select();
     document.execCommand('copy');
     showSuccess('Copied to clipboard!');
+    // Track copy action
+    if (window.goatcounter) {
+      window.goatcounter.count({ path: 'event-copy', title: 'Copy to Clipboard', event: true });
+    }
   }
 }
 
@@ -112,16 +132,32 @@ function handleClear() {
   errorEl.classList.add('hidden');
   errorEl.textContent = '';
   inputEl.focus();
+  // Track clear action
+  if (window.goatcounter) {
+    window.goatcounter.count({ path: 'event-clear', title: 'Clear Input', event: true });
+  }
 }
 
 // Load example handler
 function loadExample(index) {
   if (index !== undefined) {
     inputEl.value = examples[index].code;
+    // Track specific example load
+    if (window.goatcounter) {
+      window.goatcounter.count({
+        path: `event-example-${examples[index].name.toLowerCase().replace(/\s+/g, '-')}`,
+        title: `Example: ${examples[index].name}`,
+        event: true
+      });
+    }
   } else {
     // Random example
     const randomIndex = Math.floor(Math.random() * examples.length);
     inputEl.value = examples[randomIndex].code;
+    // Track random example load
+    if (window.goatcounter) {
+      window.goatcounter.count({ path: 'event-example-random', title: 'Example: Random', event: true });
+    }
   }
   handleFormat();
 }
