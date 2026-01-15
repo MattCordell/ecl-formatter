@@ -62,6 +62,46 @@ describe("ECL Formatter", () => {
       expect(result.error).toBeNull();
       expect(result.formatted).toBe("<< 404684003 MINUS << 987654321");
     });
+
+    it("should accept lowercase 'and' and normalize to uppercase", () => {
+      const input = "<< 404684003 and << 987654321";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("<< 404684003 AND << 987654321");
+    });
+
+    it("should accept lowercase 'or' and normalize to uppercase", () => {
+      const input = "<< 404684003 or << 987654321";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("<< 404684003 OR << 987654321");
+    });
+
+    it("should accept lowercase 'minus' and normalize to uppercase", () => {
+      const input = "<< 404684003 minus << 987654321";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("<< 404684003 MINUS << 987654321");
+    });
+
+    it("should accept mixed case keywords and normalize to uppercase", () => {
+      const input = "<< 404684003 And << 987654321 Or << 123456789";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("AND");
+      expect(result.formatted).toContain("OR");
+    });
+
+    it("should handle nested expression with lowercase keywords", () => {
+      const input = "(<< 246061005 minus (<< 116680003 or << 127489000))";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      // Verify keywords are normalized to uppercase
+      expect(result.formatted).toContain("MINUS");
+      expect(result.formatted).toContain("OR");
+      expect(result.formatted).not.toContain("minus");
+      expect(result.formatted).not.toContain("or");
+    });
   });
 
   describe("Refinements", () => {

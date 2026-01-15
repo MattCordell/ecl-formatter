@@ -265,45 +265,48 @@ export const Wildcard = createToken({
 });
 
 /**
- * Logical AND operator.
+ * Logical AND operator (case-insensitive).
  *
  * Combines two constraints where both conditions must be satisfied.
+ * Accepts any case variant (AND, and, And, etc.) but normalizes to uppercase in output.
  *
  * @example << 404684003 AND << 373873005
  * @example << 19829001 : 363698007 = << 39057004 AND 116676008 = << 72704001
- * @pattern /AND/
+ * @pattern /AND/i
  */
 export const And = createToken({
   name: "And",
-  pattern: /AND/,
+  pattern: /AND/i,
 });
 
 /**
- * Logical OR operator.
+ * Logical OR operator (case-insensitive).
  *
  * Combines two constraints where either condition can be satisfied.
+ * Accepts any case variant (OR, or, Or, etc.) but normalizes to uppercase in output.
  *
  * @example << 404684003 OR << 373873005
  * @example << 19829001 : 363698007 = << 39057004 OR 363698007 = << 72704001
- * @pattern /OR/
+ * @pattern /OR/i
  */
 export const Or = createToken({
   name: "Or",
-  pattern: /OR/,
+  pattern: /OR/i,
 });
 
 /**
- * Logical MINUS operator (exclusion).
+ * Logical MINUS operator (case-insensitive, exclusion).
  *
  * Excludes concepts matching the second constraint from the first constraint.
+ * Accepts any case variant (MINUS, minus, Minus, etc.) but normalizes to uppercase in output.
  *
  * @example << 404684003 MINUS << 283682007
  * @example << 19829001 MINUS ^ 700043003
- * @pattern /MINUS/
+ * @pattern /MINUS/i
  */
 export const Minus = createToken({
   name: "Minus",
-  pattern: /MINUS/,
+  pattern: /MINUS/i,
 });
 
 /**
