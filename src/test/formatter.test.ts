@@ -211,6 +211,55 @@ describe("ECL Formatter", () => {
     });
   });
 
+  describe("Parenthesized attribute sets", () => {
+    it("should format single attribute in parentheses inline", () => {
+      const input = "<< 404684003: (363698007 = << 39057004)";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("(363698007 = << 39057004)");
+    });
+
+    it("should format parenthesized attribute set from issue #21", () => {
+      const input = ">> 715010008: (263583002 = 711387003, * = 723612001)";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBeDefined();
+      expect(result.formatted).toContain("(");
+      expect(result.formatted).toContain(")");
+    });
+
+    it("should format parenthesized attribute set with OR", () => {
+      const input = "<< 404684003: (363698007 = << 39057004 OR 116676008 = << 55641003)";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("OR");
+    });
+
+    it("should format nested parentheses", () => {
+      const input = "<< 404684003: ((363698007 = << 39057004))";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("((");
+      expect(result.formatted).toContain("))");
+    });
+
+    it("should format parenthesized set inside attribute group", () => {
+      const input = "<< 404684003: { (363698007 = << 39057004 OR 116676008 = *) }";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("{");
+      expect(result.formatted).toContain("(");
+    });
+
+    it("should be idempotent for parenthesized attribute sets", () => {
+      const input = "<< 404684003: (363698007 = << 39057004)";
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+  });
+
   describe("Dotted attributes", () => {
     it("should parse simple dotted attribute", () => {
       const input = "< 125605004 . 363698007";

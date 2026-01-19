@@ -77,6 +77,9 @@ export function print(
     case "Attribute":
       return printAttribute(node as ast.Attribute, options, indent, column);
 
+    case "NestedAttributeSet":
+      return printNestedAttributeSet(node as ast.NestedAttributeSet, options, indent, column);
+
     case "DottedAttributePath":
       return printDottedAttributePath(node as ast.DottedAttributePath, options, indent, column);
 
@@ -349,8 +352,8 @@ function printAttributeGroup(
     const innerSpaces = " ".repeat(innerIndent);
     const parts: string[] = [];
 
-    for (const attr of node.attributes) {
-      parts.push(innerSpaces + printAttribute(attr, options, innerIndent, innerIndent));
+    for (const item of node.items) {
+      parts.push(innerSpaces + printAttributeSetItem(item, options, innerIndent, innerIndent));
     }
 
     // Join with conjunctions
@@ -366,12 +369,12 @@ function printAttributeGroup(
     let currentColumn = column + cardinalityStr.length + 2; // "{ "
     const parts: string[] = [];
 
-    for (let i = 0; i < node.attributes.length; i++) {
-      const attrStr = printAttribute(node.attributes[i], options, indent, currentColumn);
-      parts.push(attrStr);
-      currentColumn += attrStr.length;
+    for (let i = 0; i < node.items.length; i++) {
+      const itemStr = printAttributeSetItem(node.items[i], options, indent, currentColumn);
+      parts.push(itemStr);
+      currentColumn += itemStr.length;
 
-      if (i < node.attributes.length - 1) {
+      if (i < node.items.length - 1) {
         const conj = node.conjunctions[i] || ",";
         const conjStr = conj === "," ? ", " : " " + conj + " ";
         currentColumn += conjStr.length;
@@ -386,6 +389,60 @@ function printAttributeGroup(
 
     return `${cardinalityStr}{ ${inner} }`;
   }
+}
+
+/**
+ * Prints an attribute set item (either Attribute or NestedAttributeSet).
+ */
+function printAttributeSetItem(
+  item: ast.AttributeSetItem,
+  options: FormattingOptions,
+  indent: number,
+  column: number
+): string {
+  if (item.type === "Attribute") {
+    return printAttribute(item as ast.Attribute, options, indent, column);
+  }
+  return printNestedAttributeSet(item as ast.NestedAttributeSet, options, indent, column);
+}
+
+/**
+ * Prints a nested attribute set (parenthesized group of attributes for precedence).
+ */
+function printNestedAttributeSet(
+  node: ast.NestedAttributeSet,
+  options: FormattingOptions,
+  indent: number,
+  column: number
+): string {
+  // Determine if we should break across lines
+  const shouldBreak = node.items.length > 1;
+
+  if (!shouldBreak) {
+    // Single item - keep on one line
+    const innerColumn = column + 1; // After opening paren
+    const innerStr = printAttributeSetItem(node.items[0], options, indent, innerColumn);
+    return `(${innerStr})`;
+  }
+
+  // Multiple items - break across lines
+  const innerIndent = column + options.indentSize;
+  const innerSpaces = " ".repeat(innerIndent);
+  const parts: string[] = [];
+
+  for (const item of node.items) {
+    parts.push(innerSpaces + printAttributeSetItem(item, options, innerIndent, innerIndent));
+  }
+
+  // Join with conjunctions
+  let inner = parts[0];
+  for (let i = 1; i < parts.length; i++) {
+    const conj = node.conjunctions[i - 1] || ",";
+    inner += `${conj === "," ? "," : " " + conj}\n${parts[i]}`;
+  }
+
+  const closingSpaces = " ".repeat(column);
+  return `(\n${inner}\n${closingSpaces})`;
 }
 
 function printAttribute(

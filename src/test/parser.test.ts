@@ -178,6 +178,77 @@ describe("ECL Parser", () => {
     });
   });
 
+  describe("Parenthesized attribute sets", () => {
+    it("should parse single attribute in parentheses", () => {
+      const result = parseEcl("<< 404684003: (363698007 = << 39057004)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      expect(refined.refinement.items).toHaveLength(1);
+      expect(refined.refinement.items[0].type).toBe("NestedAttributeSet");
+      expect(refined.refinement.items[0].items).toHaveLength(1);
+      expect(refined.refinement.items[0].items[0].type).toBe("Attribute");
+    });
+
+    it("should parse parenthesized attribute set with OR", () => {
+      const result = parseEcl("<< 404684003: (363698007 = << 39057004 OR 116676008 = << 55641003)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      expect(refined.refinement.items).toHaveLength(1);
+      const nestedSet = refined.refinement.items[0];
+      expect(nestedSet.type).toBe("NestedAttributeSet");
+      expect(nestedSet.items).toHaveLength(2);
+      expect(nestedSet.conjunctions).toEqual(["OR"]);
+    });
+
+    it("should parse parenthesized attribute set with comma", () => {
+      const result = parseEcl(">> 715010008: (263583002 = 711387003, * = 723612001)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const nestedSet = refined.refinement.items[0];
+      expect(nestedSet.type).toBe("NestedAttributeSet");
+      expect(nestedSet.items).toHaveLength(2);
+      expect(nestedSet.conjunctions).toEqual([","]);
+    });
+
+    it("should parse nested parentheses", () => {
+      const result = parseEcl("<< 404684003: ((363698007 = << 39057004))");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const outerNested = refined.refinement.items[0];
+      expect(outerNested.type).toBe("NestedAttributeSet");
+      const innerNested = outerNested.items[0];
+      expect(innerNested.type).toBe("NestedAttributeSet");
+      expect(innerNested.items[0].type).toBe("Attribute");
+    });
+
+    it("should parse parenthesized set inside attribute group", () => {
+      const result = parseEcl("<< 404684003: { (363698007 = << 39057004 OR 116676008 = *) }");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const group = refined.refinement.items[0];
+      expect(group.type).toBe("AttributeGroup");
+      expect(group.items).toHaveLength(1);
+      expect(group.items[0].type).toBe("NestedAttributeSet");
+      expect(group.items[0].items).toHaveLength(2);
+    });
+
+    it("should parse mixed precedence with parentheses", () => {
+      const result = parseEcl("<< 404684003: 111111 = * AND (222222 = * OR 333333 = *)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      expect(refined.refinement.items).toHaveLength(2);
+      expect(refined.refinement.items[0].type).toBe("Attribute");
+      expect(refined.refinement.items[1].type).toBe("NestedAttributeSet");
+      expect(refined.refinement.conjunctions).toEqual(["AND"]);
+    });
+  });
+
   describe("Dotted attributes", () => {
     it("should parse simple dotted attribute notation", () => {
       const result = parseEcl("< 125605004 . 363698007");

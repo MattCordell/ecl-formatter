@@ -113,13 +113,16 @@ export interface Refinement extends AstNode {
   conjunctions: ("AND" | "OR" | ",")[];
 }
 
-export type RefinementItem = AttributeGroup | Attribute;
+export type RefinementItem = AttributeGroup | AttributeSetItem;
+
+// Union type for items that can appear in an attribute set
+export type AttributeSetItem = Attribute | NestedAttributeSet;
 
 // Attribute group: { attributes }
 export interface AttributeGroup extends AstNode {
   type: "AttributeGroup";
   cardinality?: Cardinality;
-  attributes: Attribute[];
+  items: AttributeSetItem[];
   conjunctions: ("AND" | "OR" | ",")[];
 }
 
@@ -131,6 +134,13 @@ export interface Attribute extends AstNode {
   name: AttributeName;
   comparator: "=" | "!=" | "<" | "<=" | ">" | ">=";
   value: AttributeValue;
+}
+
+// Nested attribute set in parentheses (for precedence grouping)
+export interface NestedAttributeSet extends AstNode {
+  type: "NestedAttributeSet";
+  items: AttributeSetItem[];
+  conjunctions: ("AND" | "OR" | ",")[];
 }
 
 // Attribute name: concept reference, wildcard, or dotted path
@@ -269,4 +279,8 @@ export function isAttributeGroup(node: AstNode): node is AttributeGroup {
 
 export function isAttribute(node: AstNode): node is Attribute {
   return node.type === "Attribute";
+}
+
+export function isNestedAttributeSet(node: AstNode): node is NestedAttributeSet {
+  return node.type === "NestedAttributeSet";
 }

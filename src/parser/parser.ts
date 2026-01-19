@@ -341,17 +341,18 @@ export class EclParser extends CstParser {
   /**
    * Parses a refinement item.
    *
-   * A refinement item represents either a single attribute constraint or an attribute group.
+   * A refinement item represents an attribute constraint, attribute group, or parenthesized attribute set.
    * It can be optionally prefixed with a cardinality constraint [min..max] to specify how many
    * times the attribute or group must appear. Cardinality is particularly important for modeling
    * clinical scenarios with multiple occurrences.
    *
-   * @grammar eclRefinementItem ::= cardinality? (eclAttributeGroup | eclAttribute)
+   * @grammar eclRefinementItem ::= cardinality? (eclAttributeGroup | subAttributeSet)
    *
    * @example
    * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (single attribute)
    * - `[1..3] { 363698007 |Finding site| = * }` (attribute group with cardinality)
    * - `[0..*] 246075003 |Causative agent| = << 105590001 |Substance|` (attribute with unbounded cardinality)
+   * - `(363698007 = << 39057004 OR 116676008 = << 55641003)` (parenthesized attribute set)
    */
   private eclRefinementItem = this.RULE("eclRefinementItem", () => {
     this.OPTION(() => {
@@ -359,7 +360,7 @@ export class EclParser extends CstParser {
     });
     this.OR([
       { ALT: () => this.SUBRULE(this.eclAttributeGroup) },
-      { ALT: () => this.SUBRULE(this.eclAttribute) },
+      { ALT: () => this.SUBRULE(this.subAttributeSet) },
     ]);
   });
 
@@ -396,17 +397,58 @@ export class EclParser extends CstParser {
    * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (single attribute)
    * - `116676008 |Associated morphology| = << 55641003 |Infarct| AND 363698007 |Finding site| = << 40207001 |Myocardium|` (multiple attributes with AND)
    * - `246075003 |Causative agent| = << 387517004 |Paracetamol|, 370135005 |Pathological process| = << 472964009 |Accidental overdose|` (comma-separated attributes)
+   * - `(363698007 = << 39057004 OR 116676008 = << 55641003)` (parenthesized attribute set for precedence)
    */
   private eclAttributeSet = this.RULE("eclAttributeSet", () => {
-    this.SUBRULE(this.eclAttribute);
+    this.SUBRULE(this.subAttributeSet);
     this.MANY(() => {
       this.OR([
         { ALT: () => this.CONSUME(And) },
         { ALT: () => this.CONSUME(Or) },
         { ALT: () => this.CONSUME(Comma) },
       ]);
-      this.SUBRULE2(this.eclAttribute);
+      this.SUBRULE2(this.subAttributeSet);
     });
+  });
+
+  /**
+   * Parses a sub-attribute set (single attribute or parenthesized attribute set).
+   *
+   * This rule allows attribute sets to be grouped with parentheses for controlling
+   * operator precedence in complex attribute constraints. For example, to ensure OR
+   * operations bind before AND, you can write: `attr1 = val1 AND (attr2 = val2 OR attr3 = val3)`.
+   *
+   * Note: Uses BACKTRACK to resolve ambiguity between parenthesized attribute sets and
+   * attributes with nested expression names. The parenthesized attribute set alternative
+   * is tried first with backtracking, falling back to eclAttribute if it doesn't match.
+   *
+   * @grammar subAttributeSet ::= eclAttribute | '(' eclAttributeSet ')'
+   *
+   * @example
+   * - `363698007 = << 39057004` (single attribute)
+   * - `(363698007 = << 39057004 OR 116676008 = << 55641003)` (parenthesized set for precedence)
+   * - `((363698007 = << 39057004))` (nested parentheses)
+   */
+  private subAttributeSet = this.RULE("subAttributeSet", () => {
+    this.OR([
+      {
+        // Try parenthesized attribute set first with backtracking
+        // This resolves ambiguity with eclAttribute where attribute name is a nested expression
+        GATE: this.BACKTRACK(this.parenthesizedAttributeSet),
+        ALT: () => this.SUBRULE(this.parenthesizedAttributeSet),
+      },
+      { ALT: () => this.SUBRULE(this.eclAttribute) },
+    ]);
+  });
+
+  /**
+   * Helper rule for parsing parenthesized attribute sets.
+   * Used with BACKTRACK to resolve ambiguity with eclAttribute.
+   */
+  private parenthesizedAttributeSet = this.RULE("parenthesizedAttributeSet", () => {
+    this.CONSUME(LParen);
+    this.SUBRULE(this.eclAttributeSet);
+    this.CONSUME(RParen);
   });
 
   /**

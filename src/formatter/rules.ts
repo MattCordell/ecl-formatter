@@ -89,10 +89,17 @@ export function isComplex(node: ast.AstNode): boolean {
       return isComplex(nested.expression as ast.AstNode);
     }
 
-    case "AttributeGroup":
-      // Attribute groups with multiple attributes are complex
+    case "AttributeGroup": {
+      // Attribute groups with multiple items are complex
       const group = node as ast.AttributeGroup;
-      return group.attributes.length > 1;
+      return group.items.length > 1;
+    }
+
+    case "NestedAttributeSet": {
+      // Nested attribute sets with multiple items are complex
+      const nested = node as ast.NestedAttributeSet;
+      return nested.items.length > 1;
+    }
 
     case "Refinement": {
       const refinement = node as ast.Refinement;
@@ -121,9 +128,9 @@ export function shouldBreakRefinement(refinement: ast.Refinement): boolean {
     return true;
   }
 
-  // Break if any attribute group has multiple attributes
+  // Break if any attribute group has multiple items
   for (const item of refinement.items) {
-    if (item.type === "AttributeGroup" && item.attributes.length > 1) {
+    if (item.type === "AttributeGroup" && item.items.length > 1) {
       return true;
     }
   }
@@ -135,7 +142,7 @@ export function shouldBreakRefinement(refinement: ast.Refinement): boolean {
  * Determines if an attribute group should be broken onto multiple lines
  */
 export function shouldBreakAttributeGroup(group: ast.AttributeGroup): boolean {
-  return group.attributes.length > 1;
+  return group.items.length > 1;
 }
 
 /**

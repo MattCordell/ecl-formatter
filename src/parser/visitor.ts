@@ -427,15 +427,15 @@ export class EclAstVisitor extends BaseEclVisitor {
    * set of attributes). Both can have optional cardinality constraints. This method
    * extracts the cardinality if present and attaches it to the appropriate item type.
    *
-   * @param ctx - CST context containing optional cardinality and one of: eclAttributeGroup or eclAttribute
-   * @returns AttributeGroup or Attribute, potentially with cardinality field
+   * @param ctx - CST context containing optional cardinality and one of: eclAttributeGroup or subAttributeSet
+   * @returns AttributeGroup, Attribute, or NestedAttributeSet, potentially with cardinality field
    *
    * @example
    * Input CST: "[1..*] { 363698007 = 123456789 }"
    * Output: {
    *   type: "AttributeGroup",
    *   cardinality: { type: "Cardinality", min: 1, max: "*" },
-   *   attributes: [...],
+   *   items: [...],
    *   conjunctions: [...]
    * }
    */
@@ -453,12 +453,13 @@ export class EclAstVisitor extends BaseEclVisitor {
       return group;
     }
 
-    if (ctx.eclAttribute) {
-      const attr = this.visit(ctx.eclAttribute[0]) as ast.Attribute;
-      if (cardinality) {
-        attr.cardinality = cardinality;
+    if (ctx.subAttributeSet) {
+      const item = this.visit(ctx.subAttributeSet[0]) as ast.AttributeSetItem;
+      // Cardinality can only apply to Attribute, not NestedAttributeSet
+      if (cardinality && item.type === "Attribute") {
+        (item as ast.Attribute).cardinality = cardinality;
       }
-      return attr;
+      return item;
     }
 
     throw new Error("Unknown refinement item type");
@@ -472,13 +473,13 @@ export class EclAstVisitor extends BaseEclVisitor {
    * conjunctions, then wraps the result in an AttributeGroup node.
    *
    * @param ctx - CST context containing eclAttributeSet (braced attribute list)
-   * @returns AttributeGroup with attributes array and conjunctions array
+   * @returns AttributeGroup with items array and conjunctions array
    *
    * @example
    * Input CST: "{ 363698007 = 123456789 , 116676008 = 987654321 }"
    * Output: {
    *   type: "AttributeGroup",
-   *   attributes: [{ type: "Attribute", ... }, { type: "Attribute", ... }],
+   *   items: [{ type: "Attribute", ... }, { type: "Attribute", ... }],
    *   conjunctions: [","]
    * }
    */
@@ -486,47 +487,92 @@ export class EclAstVisitor extends BaseEclVisitor {
     const attrSet = this.visit(ctx.eclAttributeSet[0]);
     return {
       type: "AttributeGroup",
-      attributes: attrSet.attributes,
+      items: attrSet.items,
       conjunctions: attrSet.conjunctions,
     };
   }
 
   /**
-   * Transforms eclAttributeSet CST node to plain object with attributes and conjunctions.
+   * Transforms eclAttributeSet CST node to plain object with items and conjunctions.
    *
-   * Helper method for extracting attribute lists and their joining conjunctions. Does
+   * Helper method for extracting attribute set items and their joining conjunctions. Does
    * not create an AST node itself but returns raw data used by eclAttributeGroup and
-   * eclRefinement. Maintains parallel arrays where conjunctions[i] joins attributes[i] and attributes[i+1].
+   * eclRefinement. Maintains parallel arrays where conjunctions[i] joins items[i] and items[i+1].
+   * Items can be either Attribute or NestedAttributeSet nodes.
    *
-   * @param ctx - CST context containing eclAttribute array and optional And, Or, Comma token arrays
-   * @returns Plain object with attributes array and conjunctions array (not an AST node)
+   * @param ctx - CST context containing subAttributeSet array and optional And, Or, Comma token arrays
+   * @returns Plain object with items array and conjunctions array (not an AST node)
    *
    * @example
    * Input CST: "363698007 = 123456789 AND 116676008 = 987654321"
    * Output: {
-   *   attributes: [{ type: "Attribute", ... }, { type: "Attribute", ... }],
+   *   items: [{ type: "Attribute", ... }, { type: "Attribute", ... }],
    *   conjunctions: ["AND"]
    * }
    */
-  eclAttributeSet(ctx: any): { attributes: ast.Attribute[]; conjunctions: ("AND" | "OR" | ",")[] } {
-    const attributes: ast.Attribute[] = [];
+  eclAttributeSet(ctx: any): { items: ast.AttributeSetItem[]; conjunctions: ("AND" | "OR" | ",")[] } {
+    const items: ast.AttributeSetItem[] = [];
     const conjunctions: ("AND" | "OR" | ",")[] = [];
 
-    // First attribute
-    attributes.push(this.visit(ctx.eclAttribute[0]));
+    // First item (attribute or nested attribute set)
+    items.push(this.visit(ctx.subAttributeSet[0]));
 
-    // Additional attributes with conjunctions
-    if (ctx.eclAttribute.length > 1) {
-      for (let i = 1; i < ctx.eclAttribute.length; i++) {
+    // Additional items with conjunctions
+    if (ctx.subAttributeSet.length > 1) {
+      for (let i = 1; i < ctx.subAttributeSet.length; i++) {
         if (ctx.And && ctx.And[i - 1]) conjunctions.push("AND");
         else if (ctx.Or && ctx.Or[i - 1]) conjunctions.push("OR");
         else if (ctx.Comma && ctx.Comma[i - 1]) conjunctions.push(",");
 
-        attributes.push(this.visit(ctx.eclAttribute[i]));
+        items.push(this.visit(ctx.subAttributeSet[i]));
       }
     }
 
-    return { attributes, conjunctions };
+    return { items, conjunctions };
+  }
+
+  /**
+   * Transforms subAttributeSet CST node to AttributeSetItem AST.
+   *
+   * A sub-attribute set can be either a single attribute or a parenthesized attribute set.
+   * This enables operator precedence grouping in complex attribute constraints.
+   *
+   * @param ctx - CST context containing either eclAttribute or parenthesizedAttributeSet
+   * @returns Either an Attribute or a NestedAttributeSet
+   *
+   * @example
+   * Input CST: "(363698007 = 123456789 OR 116676008 = 987654321)"
+   * Output: {
+   *   type: "NestedAttributeSet",
+   *   items: [{ type: "Attribute", ... }, { type: "Attribute", ... }],
+   *   conjunctions: ["OR"]
+   * }
+   */
+  subAttributeSet(ctx: any): ast.AttributeSetItem {
+    if (ctx.eclAttribute) {
+      return this.visit(ctx.eclAttribute[0]);
+    }
+    if (ctx.parenthesizedAttributeSet) {
+      return this.visit(ctx.parenthesizedAttributeSet[0]);
+    }
+    throw new Error("Unknown subAttributeSet type");
+  }
+
+  /**
+   * Transforms parenthesizedAttributeSet CST node to NestedAttributeSet AST.
+   *
+   * Parenthesized attribute sets allow grouping attributes for operator precedence.
+   *
+   * @param ctx - CST context containing eclAttributeSet within parentheses
+   * @returns NestedAttributeSet with items and conjunctions
+   */
+  parenthesizedAttributeSet(ctx: any): ast.NestedAttributeSet {
+    const attrSet = this.visit(ctx.eclAttributeSet[0]);
+    return {
+      type: "NestedAttributeSet",
+      items: attrSet.items,
+      conjunctions: attrSet.conjunctions,
+    };
   }
 
   /**
