@@ -40,6 +40,18 @@ Press F5 in VS Code to launch the Extension Development Host for testing.
 - Specification: https://docs.snomed.org/snomed-ct-specifications/snomed-ct-expression-constraint-language
 - ANTLR Grammar: https://github.com/IHTSDO/snomed-expression-constraint-language
 
+## Development Workflow
+
+**Testing Requirements:**
+- Always add tests when implementing new functionality
+- Cover edge cases and different scenarios
+- **Never modify existing tests without explicit permission** - ask first to ensure behavior is as expected
+
+**Deployment:**
+- After committing code changes, always rebuild the web bundle: `npm run build:web`
+- Commit and push the updated `docs/ecl-formatter.js` to keep web deployment in sync
+- The webform uses `docs/ecl-formatter.js`, while the VS Code extension uses `dist/extension.js`
+
 ## Contributing
 
 When making changes to this codebase, please follow the guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md).
