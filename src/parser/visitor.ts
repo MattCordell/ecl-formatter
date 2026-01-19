@@ -566,12 +566,22 @@ export class EclAstVisitor extends BaseEclVisitor {
       }
     }
 
+    // Handle numeric values (# prefix) vs other value types
+    let value: ast.AttributeValue;
+    if (ctx.Hash && ctx.numericValue) {
+      value = this.visit(ctx.numericValue[0]);
+    } else if (ctx.eclAttributeValue) {
+      value = this.visit(ctx.eclAttributeValue[0]);
+    } else {
+      throw new Error("Attribute must have a value");
+    }
+
     return {
       type: "Attribute",
       reverseFlag: reverseFlag || undefined,  // Only include if true
       name: this.visit(ctx.eclAttributeName[0]),
       comparator: this.visit(ctx.comparator[0]),
-      value: this.visit(ctx.eclAttributeValue[0]),
+      value: value,
     };
   }
 
@@ -685,6 +695,46 @@ export class EclAstVisitor extends BaseEclVisitor {
       return { type: "BooleanValue", value: false } as ast.BooleanValue;
     }
     throw new Error("Unknown attribute value type");
+  }
+
+  /**
+   * Transforms numeric concrete domain values from CST to AST.
+   *
+   * Converts decimal and integer tokens into NumberValue AST nodes.
+   * The # prefix is consumed by the parser and not included in the value.
+   * Supports unsigned integers, signed integers, and decimal values.
+   *
+   * @param ctx - CST context containing DecimalValue, SignedInteger, or Integer tokens
+   * @returns NumberValue AST node with parsed numeric value
+   *
+   * @example
+   * Input CST: DecimalValue["12.5"]
+   * Output: { type: "NumberValue", value: 12.5 }
+   *
+   * @example
+   * Input CST: SignedInteger["-10"]
+   * Output: { type: "NumberValue", value: -10 }
+   */
+  numericValue(ctx: any): ast.NumberValue {
+    if (ctx.DecimalValue) {
+      return {
+        type: "NumberValue",
+        value: parseFloat(ctx.DecimalValue[0].image),
+      } as ast.NumberValue;
+    }
+    if (ctx.SignedInteger) {
+      return {
+        type: "NumberValue",
+        value: parseInt(ctx.SignedInteger[0].image, 10),
+      } as ast.NumberValue;
+    }
+    if (ctx.Integer) {
+      return {
+        type: "NumberValue",
+        value: parseInt(ctx.Integer[0].image, 10),
+      } as ast.NumberValue;
+    }
+    throw new Error("Unknown numeric value type");
   }
 
   /**

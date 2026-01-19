@@ -925,6 +925,38 @@ export const AlternateIdCode = createToken({
 });
 
 /**
+ * Decimal number literal.
+ *
+ * Matches decimal values with optional sign prefix. Used in numeric concrete
+ * domain values. Must be defined before Integer to match decimal patterns first.
+ *
+ * @example #12.5
+ * @example #-10.25
+ * @example #+3.14
+ * @pattern /[+-]?\d+\.\d+/
+ */
+export const DecimalValue = createToken({
+  name: "DecimalValue",
+  pattern: /[+-]?\d+\.\d+/,
+});
+
+/**
+ * Signed integer literal.
+ *
+ * Matches integer values with required sign prefix. Used in numeric concrete
+ * domain values to distinguish from unsigned integers and SNOMED CT identifiers.
+ * Must be defined before unsigned Integer to match signed patterns first.
+ *
+ * @example #-10
+ * @example #+42
+ * @pattern /[+-]\d+/
+ */
+export const SignedInteger = createToken({
+  name: "SignedInteger",
+  pattern: /[+-]\d+/,
+});
+
+/**
  * Generic identifier token.
  *
  * Matches alphanumeric identifiers starting with a letter. Used for code system
@@ -1063,6 +1095,10 @@ export const allTokens = [
 
   // Alternate ID codes with hyphens (before SCTID/Integer to get priority)
   AlternateIdCode,
+
+  // Numeric literals (most specific first: decimal > signed > unsigned)
+  DecimalValue,      // Must be first (matches sign + digits + dot + digits)
+  SignedInteger,     // Then signed integers (matches sign + digits)
 
   // SCTID before Integer (longer pattern)
   SctId,

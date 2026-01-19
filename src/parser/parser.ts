@@ -50,6 +50,8 @@ import {
   // Literals
   SctId,
   Integer,
+  DecimalValue,
+  SignedInteger,
   StringLiteral,
   TermString,
   DialectAlias,
@@ -412,14 +414,18 @@ export class EclParser extends CstParser {
    *
    * An attribute constraint is a triple consisting of an attribute name, a comparator, and a value.
    * Optionally preceded by a reverse flag ('R' or 'reverseOf') that reverses the relationship direction.
-   * This represents a relationship constraint in SNOMED CT's compositional grammar, allowing
-   * concepts to be refined by specifying required attribute-value relationships.
+   * The ECL specification supports four types of attribute values:
+   * 1. Expression constraints (concept references)
+   * 2. Numeric values (prefixed with #)
+   * 3. String values (quoted text)
+   * 4. Boolean values (true/false)
    *
-   * @grammar eclAttribute ::= (reverseFlag)? eclAttributeName comparator eclAttributeValue
+   * @grammar eclAttribute ::= (reverseFlag)? eclAttributeName comparator (Hash numericValue | eclAttributeValue)
    * @grammar reverseFlag ::= 'R' | 'reverseOf'
    *
    * @example
-   * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (no reverse)
+   * - `363698007 |Finding site| = << 39057004 |Pulmonary valve|` (expression constraint)
+   * - `111115 |Has dose strength| = #500` (numeric concrete value)
    * - `R 363698007 = << 125605004` (brief reverse syntax)
    * - `reverseOf 363698007 = << 125605004` (long reverse syntax)
    * - `<< 246075003 |Causative agent| = 387517004 |Paracetamol|` (attribute name with constraint operator)
@@ -436,7 +442,23 @@ export class EclParser extends CstParser {
 
     this.SUBRULE(this.eclAttributeName);
     this.SUBRULE(this.comparator);
-    this.SUBRULE(this.eclAttributeValue);
+
+    // Check if this is a numeric concrete value (prefixed with #)
+    this.OR2([
+      {
+        // Numeric value path: # followed by number
+        ALT: () => {
+          this.CONSUME(Hash);
+          this.SUBRULE(this.numericValue);
+        },
+      },
+      {
+        // All other value types (expression, string, boolean)
+        ALT: () => {
+          this.SUBRULE(this.eclAttributeValue);
+        },
+      },
+    ]);
   });
 
   /**
@@ -516,6 +538,27 @@ export class EclParser extends CstParser {
       { ALT: () => this.CONSUME(False) },
       // Sub-expression handles nested expressions via eclFocusConcept
       { ALT: () => this.SUBRULE(this.subExpressionConstraint) },
+    ]);
+  });
+
+  /**
+   * Parses a numeric concrete domain value.
+   *
+   * Numeric values can be integers or decimals, with optional sign prefix.
+   * In ECL syntax, they are prefixed with # to distinguish from concept IDs.
+   *
+   * @grammar numericValue ::= DecimalValue | SignedInteger | Integer
+   *
+   * @example #500
+   * @example #12.5
+   * @example #-10
+   * @example #+3.14
+   */
+  private numericValue = this.RULE("numericValue", () => {
+    this.OR([
+      { ALT: () => this.CONSUME(DecimalValue) },
+      { ALT: () => this.CONSUME(SignedInteger) },
+      { ALT: () => this.CONSUME(Integer) },
     ]);
   });
 

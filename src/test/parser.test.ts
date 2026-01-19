@@ -272,4 +272,68 @@ describe("ECL Parser", () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
   });
+
+  describe("Numeric concrete domain values", () => {
+    it("should parse integer concrete value", () => {
+      const result = parseEcl("<< 123456789 : 111115 = #500");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should parse decimal concrete value", () => {
+      const result = parseEcl("<< 123456789 : 111115 = #12.5");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should parse negative integer concrete value", () => {
+      const result = parseEcl("<< 123456789 : 111115 = #-10");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should parse positive decimal with explicit sign", () => {
+      const result = parseEcl("<< 123456789 : 111115 = #+3.14");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should parse user's original query", () => {
+      const result = parseEcl(
+        "<90332006:{<<127489000=387517004,999000041000168106=#500}"
+      );
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should handle numeric comparison operators", () => {
+      const result = parseEcl("<< 123456789 : 111115 > #100");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should handle >= operator with decimal", () => {
+      const result = parseEcl("<< 123456789 : 111115 >= #50.5");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should handle <= operator", () => {
+      const result = parseEcl("<< 123456789 : 111115 <= #200");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should handle < operator with decimal", () => {
+      const result = parseEcl("<< 123456789 : 111115 < #75.25");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should handle != operator with zero", () => {
+      const result = parseEcl("<< 123456789 : 111115 != #0");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+  });
 });

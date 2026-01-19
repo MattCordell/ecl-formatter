@@ -327,4 +327,58 @@ describe("ECL Formatter", () => {
       expect(result.formatted).toBeNull();
     });
   });
+
+  describe("Numeric concrete domain formatting", () => {
+    it("should format integer concrete value", () => {
+      const input = "<<123456789:111115=#500";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("#500");
+    });
+
+    it("should format decimal concrete value", () => {
+      const input = "<<123456789:111115=#12.5";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("#12.5");
+    });
+
+    it("should preserve negative sign", () => {
+      const input = "<<123456789:111115=#-10";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("#-10");
+    });
+
+    it("should normalize positive decimal (strip + sign)", () => {
+      const input = "<<123456789:111115=#+3.14";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      // JavaScript's parseFloat strips the + sign, which is correct
+      expect(result.formatted).toContain("#3.14");
+    });
+
+    it("should format user's original query", () => {
+      const input = "<90332006:{<<127489000=387517004,999000041000168106=#500}";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBeDefined();
+      expect(result.formatted).toContain("#500");
+    });
+
+    it("should format with comparison operators", () => {
+      const input = "<<123456789:111115>#100";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("> #100");
+    });
+
+    it("should format multiple numeric attributes", () => {
+      const input = "<<123456789:{111115=#500,222226=#12.5}";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("#500");
+      expect(result.formatted).toContain("#12.5");
+    });
+  });
 });

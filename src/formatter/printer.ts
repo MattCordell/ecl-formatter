@@ -415,7 +415,10 @@ function printAttribute(
   result += ` ${node.comparator} `;
   currentColumn += 1 + node.comparator.length + 1;
 
-  const valueStr = print(node.value as ast.AstNode, options, indent, currentColumn);
+  // Add # prefix for numeric concrete domain values
+  const valueStr = node.value.type === "NumberValue"
+    ? "#" + print(node.value as ast.AstNode, options, indent, currentColumn + 1)
+    : print(node.value as ast.AstNode, options, indent, currentColumn);
   result += valueStr;
 
   return result;
