@@ -19,7 +19,10 @@
       "Bash(node:*)",
       "Bash(gh issue close:*)",
       "Bash(npm run build:web:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm test:*)",
+      "Bash(git log:*)",
+      "Bash(npx --yes http-server:*)"
     ]
   }
 }
