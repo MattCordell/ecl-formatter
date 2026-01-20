@@ -930,14 +930,18 @@ export const AlternateIdCode = createToken({
  * Matches decimal values with optional sign prefix. Used in numeric concrete
  * domain values. Must be defined before Integer to match decimal patterns first.
  *
+ * Uses negative lookahead to prevent matching dotted SCTID paths (e.g.,
+ * "929360061000036106.127489000") as decimal values. The lookahead ensures
+ * the decimal portion has fewer than 6 digits (SCTIDs are 6-18 digits).
+ *
  * @example #12.5
  * @example #-10.25
  * @example #+3.14
- * @pattern /[+-]?\d+\.\d+/
+ * @pattern /[+-]?\d+\.(?!\d{6})\d+/
  */
 export const DecimalValue = createToken({
   name: "DecimalValue",
-  pattern: /[+-]?\d+\.\d+/,
+  pattern: /[+-]?\d+\.(?!\d{6})\d+/,
 });
 
 /**

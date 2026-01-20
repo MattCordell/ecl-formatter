@@ -286,6 +286,26 @@ describe("ECL Parser", () => {
       expect(result.errors).toHaveLength(0);
       expect(result.ast?.type).toBe("SubExpression");
     });
+
+    it("should parse dotted path with long SCTIDs (not decimal)", () => {
+      // Regression test: ensure SCTID.SCTID is not tokenized as a decimal value
+      const result = parseEcl("<! 929360061000036106 . 127489000");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("SubExpression");
+      const subExpr = result.ast as any;
+      expect(subExpr.focusConcept.type).toBe("DottedAttributePath");
+      expect(subExpr.focusConcept.base.focusConcept.sctId).toBe("929360061000036106");
+      expect(subExpr.focusConcept.attributes[0].focusConcept.sctId).toBe("127489000");
+    });
+
+    it("should parse dotted path without spaces between long SCTIDs", () => {
+      // Regression test: ensure SCTID.SCTID without spaces works
+      const result = parseEcl("<!929360061000036106.127489000");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("SubExpression");
+      const subExpr = result.ast as any;
+      expect(subExpr.focusConcept.type).toBe("DottedAttributePath");
+    });
   });
 
   describe("Nested expressions", () => {
