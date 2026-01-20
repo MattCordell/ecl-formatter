@@ -488,4 +488,60 @@ describe("ECL Parser", () => {
       expect(result.ast).toBeDefined();
     });
   });
+
+  describe("Boolean attribute values", () => {
+    it("should parse boolean true as attribute value", () => {
+      const result = parseEcl("* : * = true");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("BooleanValue");
+      expect(attribute.value.value).toBe(true);
+    });
+
+    it("should parse boolean false as attribute value", () => {
+      const result = parseEcl("<< 404684003 : 123456789 = false");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("BooleanValue");
+      expect(attribute.value.value).toBe(false);
+    });
+
+    it("should parse boolean with != comparator", () => {
+      const result = parseEcl("* : 123456789 != true");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.comparator).toBe("!=");
+      expect(attribute.value.type).toBe("BooleanValue");
+      expect(attribute.value.value).toBe(true);
+    });
+
+    it("should parse multiple attributes with boolean values", () => {
+      const result = parseEcl("<< 404684003 : 123456789 = true, 987654321 = false");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      expect(refined.refinement.items).toHaveLength(2);
+      expect(refined.refinement.items[0].value.type).toBe("BooleanValue");
+      expect(refined.refinement.items[0].value.value).toBe(true);
+      expect(refined.refinement.items[1].value.type).toBe("BooleanValue");
+      expect(refined.refinement.items[1].value.value).toBe(false);
+    });
+
+    it("should parse boolean in attribute group", () => {
+      const result = parseEcl("* : { 123456789 = true }");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const group = refined.refinement.items[0];
+      expect(group.type).toBe("AttributeGroup");
+      expect(group.items[0].value.type).toBe("BooleanValue");
+      expect(group.items[0].value.value).toBe(true);
+    });
+  });
 });

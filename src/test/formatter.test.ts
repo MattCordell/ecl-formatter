@@ -500,4 +500,51 @@ describe("ECL Formatter", () => {
       expect(second.formatted).toBe(first.formatted);
     });
   });
+
+  describe("Boolean attribute value formatting", () => {
+    it("should format boolean true attribute value", () => {
+      const input = "*:*=true";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("= true");
+    });
+
+    it("should format boolean false attribute value", () => {
+      const input = "<<404684003:123456789=false";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("= false");
+    });
+
+    it("should format boolean with != comparator", () => {
+      const input = "*:123456789!=true";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("!= true");
+    });
+
+    it("should format multiple boolean attributes", () => {
+      const input = "<<404684003:123456789=true,987654321=false";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("= true");
+      expect(result.formatted).toContain("= false");
+    });
+
+    it("should be idempotent for boolean true", () => {
+      const input = "* : * = true";
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+
+    it("should be idempotent for boolean false", () => {
+      const input = "* : * = false";
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+  });
 });
