@@ -430,4 +430,74 @@ describe("ECL Formatter", () => {
       expect(result.formatted).toContain("#12.5");
     });
   });
+
+  describe("String search term formatting", () => {
+    it("should format implicit match string", () => {
+      const input = '*:*="heart"';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('"heart"');
+    });
+
+    it("should format explicit match prefix (normalizes to implicit)", () => {
+      const input = '*:*=match:"heart"';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      // match is the default, so prefix is omitted in output
+      expect(result.formatted).toContain('"heart"');
+    });
+
+    it("should format wild prefix", () => {
+      const input = '*:*=wild:"heart*"';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('wild: "heart*"');
+    });
+
+    it("should format search term set", () => {
+      const input = '*:*=("heart" "liver")';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('("heart" "liver")');
+    });
+
+    it("should format search term set with mixed types", () => {
+      const input = '*:*=(match:"heart" wild:"pulm*")';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('"heart"');
+      expect(result.formatted).toContain('wild: "pulm*"');
+    });
+
+    it("should format string search term with proper spacing", () => {
+      const input = '<<404684003:363698007="liver"';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('= "liver"');
+    });
+
+    it("should be idempotent for string search terms", () => {
+      const input = '* : * = "heart"';
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+
+    it("should be idempotent for wild search terms", () => {
+      const input = '* : * = wild: "heart*"';
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+
+    it("should be idempotent for search term sets", () => {
+      const input = '* : * = ("heart" "liver")';
+      const first = formatEcl(input, options);
+      expect(first.error).toBeNull();
+      const second = formatEcl(first.formatted!, options);
+      expect(second.formatted).toBe(first.formatted);
+    });
+  });
 });

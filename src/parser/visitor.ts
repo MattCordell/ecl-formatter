@@ -693,26 +693,35 @@ export class EclAstVisitor extends BaseEclVisitor {
   /**
    * Transforms eclAttributeValue CST node to AttributeValue AST union type.
    *
-   * Attribute values can be concept expressions (for relationship targets) or concrete
-   * data values (strings, numbers, booleans). Nested expressions are parenthesized compound
-   * expressions. String literals have quotes stripped, integers are parsed to numbers.
+   * Attribute values can be:
+   * - Typed search term set (multiple string search terms in parentheses)
+   * - Typed search term (string with optional match:/wild: prefix)
+   * - Nested expression constraint (parenthesized compound/refined expression)
+   * - Sub-expression constraint (concept reference with optional constraint)
+   * - Boolean literal (true/false)
    *
-   * @param ctx - CST context containing one of: expressionConstraint, subExpressionConstraint, StringLiteral, Integer, True, or False
-   * @returns NestedExpression, SubExpression, StringValue, NumberValue, or BooleanValue
+   * @param ctx - CST context containing one of: typedSearchTermSet, typedSearchTerm, expressionConstraint, subExpressionConstraint, True, or False
+   * @returns TypedSearchTermSet, TypedSearchTerm, NestedExpression, SubExpression, or BooleanValue
    *
    * @example
    * Input CST: "123456789" (concept reference)
    * Output: { type: "SubExpression", focusConcept: {...} }
    *
    * @example
-   * Input CST: "\"diabetes\"" (string literal)
-   * Output: { type: "StringValue", value: "diabetes" }
+   * Input CST: "\"diabetes\"" (typed search term - implicit match)
+   * Output: { type: "TypedSearchTerm", searchType: "match", value: "diabetes" }
    *
    * @example
-   * Input CST: "5" (integer)
-   * Output: { type: "NumberValue", value: 5 }
+   * Input CST: "wild: \"heart*\"" (typed search term - wildcard)
+   * Output: { type: "TypedSearchTerm", searchType: "wild", value: "heart*" }
    */
   eclAttributeValue(ctx: any): ast.AttributeValue {
+    if (ctx.typedSearchTermSet) {
+      return this.visit(ctx.typedSearchTermSet[0]);
+    }
+    if (ctx.typedSearchTerm) {
+      return this.visit(ctx.typedSearchTerm[0]);
+    }
     if (ctx.expressionConstraint) {
       return {
         type: "NestedExpression",
@@ -722,18 +731,6 @@ export class EclAstVisitor extends BaseEclVisitor {
     if (ctx.subExpressionConstraint) {
       return this.visit(ctx.subExpressionConstraint[0]);
     }
-    if (ctx.StringLiteral) {
-      return {
-        type: "StringValue",
-        value: ctx.StringLiteral[0].image.slice(1, -1),
-      } as ast.StringValue;
-    }
-    if (ctx.Integer) {
-      return {
-        type: "NumberValue",
-        value: parseInt(ctx.Integer[0].image, 10),
-      } as ast.NumberValue;
-    }
     if (ctx.True) {
       return { type: "BooleanValue", value: true } as ast.BooleanValue;
     }
@@ -741,6 +738,55 @@ export class EclAstVisitor extends BaseEclVisitor {
       return { type: "BooleanValue", value: false } as ast.BooleanValue;
     }
     throw new Error("Unknown attribute value type");
+  }
+
+  /**
+   * Transforms a typed search term CST to AST.
+   *
+   * A typed search term is a string value used for text matching in attribute constraints.
+   * It can have an optional prefix indicating the search type:
+   * - No prefix or `match:` - exact text matching (default)
+   * - `wild:` - wildcard pattern matching
+   *
+   * @param ctx - CST context containing optional Wild/Match tokens and StringLiteral
+   * @returns TypedSearchTerm AST node
+   *
+   * @example
+   * Input CST: "\"heart\""
+   * Output: { type: "TypedSearchTerm", searchType: "match", value: "heart" }
+   *
+   * @example
+   * Input CST: "wild: \"heart*\""
+   * Output: { type: "TypedSearchTerm", searchType: "wild", value: "heart*" }
+   */
+  typedSearchTerm(ctx: any): ast.TypedSearchTerm {
+    const searchType: "match" | "wild" = ctx.Wild ? "wild" : "match";
+    const stringToken = ctx.StringLiteral[0];
+    return {
+      type: "TypedSearchTerm",
+      searchType,
+      value: stringToken.image.slice(1, -1), // Strip quotes
+    };
+  }
+
+  /**
+   * Transforms a typed search term set CST to AST.
+   *
+   * A typed search term set is a parenthesized list of typed search terms,
+   * allowing matching against any of the specified terms.
+   *
+   * @param ctx - CST context containing typedSearchTerm array
+   * @returns TypedSearchTermSet AST node
+   *
+   * @example
+   * Input CST: "(\"heart\" \"liver\")"
+   * Output: { type: "TypedSearchTermSet", terms: [{...}, {...}] }
+   */
+  typedSearchTermSet(ctx: any): ast.TypedSearchTermSet {
+    return {
+      type: "TypedSearchTermSet",
+      terms: ctx.typedSearchTerm.map((t: any) => this.visit(t)),
+    };
   }
 
   /**

@@ -98,6 +98,12 @@ export function print(
     case "BooleanValue":
       return (node as ast.BooleanValue).value ? "true" : "false";
 
+    case "TypedSearchTerm":
+      return printTypedSearchTerm(node as ast.TypedSearchTerm);
+
+    case "TypedSearchTermSet":
+      return printTypedSearchTermSet(node as ast.TypedSearchTermSet, options, indent, column);
+
     default:
       throw new Error(`Unknown node type: ${node.type}`);
   }
@@ -613,4 +619,59 @@ function printFilterConstraint(
     default:
       throw new Error(`Unknown filter type: ${(node as any).type}`);
   }
+}
+
+/**
+ * Prints a typed search term.
+ *
+ * Typed search terms are string values with an optional search type prefix.
+ * - Implicit match (no prefix): "heart"
+ * - Explicit match: match: "heart"
+ * - Wildcard: wild: "heart*"
+ *
+ * For formatting, we omit the match: prefix since it's the default.
+ *
+ * @param node - TypedSearchTerm AST node
+ * @returns Formatted typed search term string
+ *
+ * @example
+ * Input: { searchType: "match", value: "heart" }
+ * Output: '"heart"'
+ *
+ * @example
+ * Input: { searchType: "wild", value: "heart*" }
+ * Output: 'wild: "heart*"'
+ */
+function printTypedSearchTerm(node: ast.TypedSearchTerm): string {
+  if (node.searchType === "wild") {
+    return `wild: "${node.value}"`;
+  }
+  // match is the default, no prefix needed
+  return `"${node.value}"`;
+}
+
+/**
+ * Prints a typed search term set.
+ *
+ * A typed search term set is a parenthesized list of typed search terms,
+ * separated by whitespace.
+ *
+ * @param node - TypedSearchTermSet AST node
+ * @param options - Formatting options
+ * @param indent - Current indentation level
+ * @param column - Current column position
+ * @returns Formatted typed search term set string
+ *
+ * @example
+ * Input: { terms: [{ searchType: "match", value: "heart" }, { searchType: "match", value: "liver" }] }
+ * Output: '("heart" "liver")'
+ */
+function printTypedSearchTermSet(
+  node: ast.TypedSearchTermSet,
+  _options: FormattingOptions,
+  _indent: number,
+  _column: number
+): string {
+  const terms = node.terms.map(t => printTypedSearchTerm(t)).join(" ");
+  return `(${terms})`;
 }

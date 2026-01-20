@@ -154,9 +154,26 @@ export type AttributeValue =
   | RefinedExpression
   | CompoundExpression
   | NestedExpression
+  | TypedSearchTerm
+  | TypedSearchTermSet
   | StringValue
   | NumberValue
   | BooleanValue;
+
+// Typed search term: string value with optional match/wild search type
+// Used in attribute values for string matching (e.g., * : * = "heart")
+export interface TypedSearchTerm extends AstNode {
+  type: "TypedSearchTerm";
+  searchType: "match" | "wild";
+  value: string;
+}
+
+// Typed search term set: multiple search terms in parentheses
+// Used for matching any of multiple strings (e.g., * : * = ("heart" "liver"))
+export interface TypedSearchTermSet extends AstNode {
+  type: "TypedSearchTermSet";
+  terms: TypedSearchTerm[];
+}
 
 // Concrete values
 export interface StringValue extends AstNode {
@@ -283,4 +300,12 @@ export function isAttribute(node: AstNode): node is Attribute {
 
 export function isNestedAttributeSet(node: AstNode): node is NestedAttributeSet {
   return node.type === "NestedAttributeSet";
+}
+
+export function isTypedSearchTerm(node: AstNode): node is TypedSearchTerm {
+  return node.type === "TypedSearchTerm";
+}
+
+export function isTypedSearchTermSet(node: AstNode): node is TypedSearchTermSet {
+  return node.type === "TypedSearchTermSet";
 }

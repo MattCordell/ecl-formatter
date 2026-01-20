@@ -560,27 +560,91 @@ export class EclParser extends CstParser {
   /**
    * Parses an attribute value.
    *
-   * Attribute values can be concrete literals (string, boolean) or sub-expression constraints
-   * (concept references with optional constraint operators). Sub-expressions allow hierarchical
-   * matching, enabling queries that match any concept within a specified subtree. Concrete values
-   * are tried first to avoid ambiguity.
+   * Attribute values can be typed search terms, concrete literals (boolean), or sub-expression
+   * constraints (concept references with optional constraint operators). Sub-expressions allow
+   * hierarchical matching, enabling queries that match any concept within a specified subtree.
+   * Typed search terms and concrete values are tried first to avoid ambiguity.
    *
-   * @grammar eclAttributeValue ::= StringLiteral | 'true' | 'false' | subExpressionConstraint
+   * @grammar eclAttributeValue ::= typedSearchTermSet | typedSearchTerm | 'true' | 'false' | subExpressionConstraint
    *
    * @example
    * - `<< 39057004 |Pulmonary valve structure|` (sub-expression with constraint operator)
-   * - `"Paracetamol"` (string literal value)
+   * - `"Paracetamol"` (typed search term - implicit match)
+   * - `match: "heart"` (typed search term - explicit match)
+   * - `wild: "heart*"` (typed search term - wildcard)
+   * - `("heart" "liver")` (typed search term set)
    * - `true` (boolean literal for active status)
    */
   private eclAttributeValue = this.RULE("eclAttributeValue", () => {
     this.OR([
-      // Concrete values first (unambiguous)
-      { ALT: () => this.CONSUME(StringLiteral) },
+      // Typed search term set must be first (starts with LParen, more specific)
+      { ALT: () => this.SUBRULE(this.typedSearchTermSet) },
+      // Typed search term (includes string literals with optional match:/wild: prefix)
+      { ALT: () => this.SUBRULE(this.typedSearchTerm) },
+      // Boolean literals
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       // Sub-expression handles nested expressions via eclFocusConcept
       { ALT: () => this.SUBRULE(this.subExpressionConstraint) },
     ]);
+  });
+
+  /**
+   * Parses a typed search term.
+   *
+   * Typed search terms are string values used for text matching in attribute constraints.
+   * They can have an optional prefix indicating the search type:
+   * - No prefix or `match:` - exact text matching (case-sensitive)
+   * - `wild:` - wildcard pattern matching (supports * for any characters)
+   *
+   * @grammar typedSearchTerm ::= ((match ':')? StringLiteral) | (wild ':' StringLiteral)
+   *
+   * @example
+   * - `"heart"` - implicit match search
+   * - `match: "heart attack"` - explicit match search
+   * - `wild: "heart*"` - wildcard search
+   */
+  private typedSearchTerm = this.RULE("typedSearchTerm", () => {
+    this.OR([
+      {
+        // wild: "pattern" - wildcard search
+        ALT: () => {
+          this.CONSUME(Wild);
+          this.CONSUME(Colon);
+          this.CONSUME(StringLiteral);
+        },
+      },
+      {
+        // match: "text" or just "text" - match search (match prefix is optional)
+        ALT: () => {
+          this.OPTION(() => {
+            this.CONSUME(Match);
+            this.CONSUME2(Colon);
+          });
+          this.CONSUME2(StringLiteral);
+        },
+      },
+    ]);
+  });
+
+  /**
+   * Parses a typed search term set.
+   *
+   * A typed search term set is a parenthesized list of typed search terms, allowing
+   * matching against any of the specified terms. Terms are separated by whitespace.
+   *
+   * @grammar typedSearchTermSet ::= '(' typedSearchTerm+ ')'
+   *
+   * @example
+   * - `("heart" "liver")` - matches either "heart" or "liver"
+   * - `(match: "heart" wild: "pulm*")` - mixed search types
+   */
+  private typedSearchTermSet = this.RULE("typedSearchTermSet", () => {
+    this.CONSUME(LParen);
+    this.AT_LEAST_ONE(() => {
+      this.SUBRULE(this.typedSearchTerm);
+    });
+    this.CONSUME(RParen);
   });
 
   /**

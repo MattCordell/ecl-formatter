@@ -407,4 +407,85 @@ describe("ECL Parser", () => {
       expect(result.ast).toBeDefined();
     });
   });
+
+  describe("String search terms in attributes", () => {
+    it("should parse implicit match string", () => {
+      const result = parseEcl('* : * = "heart"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTerm");
+      expect(attribute.value.searchType).toBe("match");
+      expect(attribute.value.value).toBe("heart");
+    });
+
+    it("should parse explicit match prefix", () => {
+      const result = parseEcl('* : * = match: "heart attack"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTerm");
+      expect(attribute.value.searchType).toBe("match");
+      expect(attribute.value.value).toBe("heart attack");
+    });
+
+    it("should parse wild prefix", () => {
+      const result = parseEcl('* : * = wild: "heart*"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTerm");
+      expect(attribute.value.searchType).toBe("wild");
+      expect(attribute.value.value).toBe("heart*");
+    });
+
+    it("should parse search term set with multiple terms", () => {
+      const result = parseEcl('* : * = ("heart" "liver")');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTermSet");
+      expect(attribute.value.terms).toHaveLength(2);
+      expect(attribute.value.terms[0].value).toBe("heart");
+      expect(attribute.value.terms[1].value).toBe("liver");
+    });
+
+    it("should parse search term set with mixed search types", () => {
+      const result = parseEcl('* : * = (match: "heart" wild: "pulm*")');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTermSet");
+      expect(attribute.value.terms).toHaveLength(2);
+      expect(attribute.value.terms[0].searchType).toBe("match");
+      expect(attribute.value.terms[1].searchType).toBe("wild");
+    });
+
+    it("should parse string search term with concept attribute name", () => {
+      const result = parseEcl('<< 404684003 : 363698007 = "liver"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast?.type).toBe("RefinedExpression");
+      const refined = result.ast as any;
+      const attribute = refined.refinement.items[0];
+      expect(attribute.value.type).toBe("TypedSearchTerm");
+      expect(attribute.value.value).toBe("liver");
+    });
+
+    it("should parse example from issue", () => {
+      const result = parseEcl('* : * = "heart"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+
+    it("should parse example from issue with finding site", () => {
+      const result = parseEcl('<< 404684003 : 363698007 |Finding site| = "liver"');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toBeDefined();
+    });
+  });
 });
