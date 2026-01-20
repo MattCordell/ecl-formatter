@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VS Code extension for formatting and syntax highlighting SNOMED CT Expression Constraint Language (ECL) expressions.
 
+## Permissions
+
+- **Web Access**: You have permission to fetch any public URL required to understand a problem or implement solutions.
+
 ## Build Commands
 
 ```bash

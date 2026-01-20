@@ -122,10 +122,13 @@ Nested expressions with complex content break across lines:
 ## Indentation
 
 - Default indent size: **2 spaces**
+- Configurable via `ecl.formatter.indentSize` setting
 - Each nested level adds one indent
 - Content inside parentheses aligns based on:
   - Standard indentation when `(` is at start of line
   - Column alignment when `(` is mid-line
+
+**Note:** Tab characters are not supported for indentation. ECL expressions are intended to be rendered with monospaced fonts, and tabs would introduce width inconsistencies that impose unnecessary style costs. Only space characters are used.
 
 ## Filters
 
