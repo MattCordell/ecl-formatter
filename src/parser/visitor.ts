@@ -993,6 +993,8 @@ export class EclAstVisitor extends BaseEclVisitor {
    * Output: { type: "TermFilter", operator: "wild", values: ["diabet*"] }
    */
   termFilter(ctx: any): ast.TermFilter {
+    const comparator: "=" | "!=" = ctx.NotEquals ? "!=" : "=";
+
     let operator: "match" | "wild" | undefined;
     if (ctx.Match) operator = "match";
     if (ctx.Wild) operator = "wild";
@@ -1002,6 +1004,7 @@ export class EclAstVisitor extends BaseEclVisitor {
 
     return {
       type: "TermFilter",
+      comparator,
       operator,
       values,
     };

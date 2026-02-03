@@ -381,7 +381,7 @@ describe("ECL Parser", () => {
   });
 
   describe("Filters", () => {
-    it("should parse term filter", () => {
+    it("should parse term filter with equals", () => {
       const result = parseEcl('<< 404684003 {{ term = "heart" }}');
       expect(result.errors).toHaveLength(0);
       expect(result.ast).toMatchObject({
@@ -389,10 +389,32 @@ describe("ECL Parser", () => {
         filters: [
           {
             type: "Filter",
-            constraints: [{ type: "TermFilter", values: ["heart"] }],
+            constraints: [{ type: "TermFilter", comparator: "=", values: ["heart"] }],
           },
         ],
       });
+    });
+
+    it("should parse term filter with not-equals", () => {
+      const result = parseEcl('<< 418268006 {{ term != "vaccine" }}');
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "SubExpression",
+        filters: [
+          {
+            type: "Filter",
+            constraints: [{ type: "TermFilter", comparator: "!=", values: ["vaccine"] }],
+          },
+        ],
+      });
+    });
+
+    it("should parse user's example with term != (simplified)", () => {
+      const result = parseEcl('< 418268006 {{ term != "vaccine" }}');
+      expect(result.errors).toHaveLength(0);
+      const ast = result.ast as any;
+      expect(ast.filters[0].constraints[0].comparator).toBe("!=");
+      expect(ast.filters[0].constraints[0].values).toEqual(["vaccine"]);
     });
 
     it("should parse dialect filter", () => {

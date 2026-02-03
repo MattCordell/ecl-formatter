@@ -348,11 +348,18 @@ describe("ECL Formatter", () => {
   });
 
   describe("Filters", () => {
-    it("should format term filter", () => {
+    it("should format term filter with equals", () => {
       const input = '<< 404684003 {{ term = "heart" }}';
       const result = formatEcl(input, options);
       expect(result.error).toBeNull();
       expect(result.formatted).toContain('{{ term = "heart" }}');
+    });
+
+    it("should format term filter with not-equals", () => {
+      const input = '<< 418268006 {{ term != "vaccine" }}';
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain('{{ term != "vaccine" }}');
     });
 
     it("should format dialect filter", () => {

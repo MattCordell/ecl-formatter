@@ -788,31 +788,35 @@ export class EclParser extends CstParser {
   /**
    * Parses a term filter.
    *
-   * Term filters match concepts based on their description text. They support optional match
-   * operators (match: for exact matching, wild: for wildcard patterns) and can accept either
-   * a single string value or multiple values in parentheses. This is one of the most commonly
-   * used filters for text-based concept searches.
+   * Term filters match concepts based on their description text. They support both equality (=)
+   * and inequality (!=) operators, optional match operators (match: for exact matching, wild:
+   * for wildcard patterns), and can accept either a single string value or multiple values in
+   * parentheses. This is one of the most commonly used filters for text-based concept searches.
    *
-   * @grammar termFilter ::= 'term' '=' ('match' | 'wild')? ':' (StringLiteral | '(' StringLiteral+ ')')
+   * @grammar termFilter ::= 'term' ('=' | '!=') ('match' | 'wild')? ':' (StringLiteral | '(' StringLiteral+ ')')
    *
    * @example
    * - `term = "diabetes"` (simple term match)
+   * - `term != "vaccine"` (term exclusion)
    * - `term = match:"diabetes mellitus"` (exact match with match operator)
    * - `term = wild:"*diabet*"` (wildcard pattern matching)
    * - `term = ("diabetes" "mellitus")` (multiple term values)
    */
   private termFilter = this.RULE("termFilter", () => {
     this.CONSUME(Term);
-    this.CONSUME(Equals);
+    this.OR([
+      { ALT: () => this.CONSUME(Equals) },
+      { ALT: () => this.CONSUME(NotEquals) },
+    ]);
     this.OPTION(() => {
-      this.OR([
+      this.OR2([
         { ALT: () => this.CONSUME(Match) },
         { ALT: () => this.CONSUME(Wild) },
       ]);
       this.CONSUME(Colon);
     });
     // String value(s) can optionally be wrapped in parentheses (multiple values allowed)
-    this.OR2([
+    this.OR3([
       {
         ALT: () => {
           this.CONSUME(LParen);

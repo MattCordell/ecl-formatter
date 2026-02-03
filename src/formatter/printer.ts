@@ -572,9 +572,9 @@ function printFilterConstraint(
         ? `(${quotedValues.join(" ")})`
         : quotedValues[0];
       if (termFilter.operator) {
-        return `term = ${termFilter.operator}:${valueStr}`;
+        return `term ${termFilter.comparator} ${termFilter.operator}:${valueStr}`;
       }
-      return `term = ${valueStr}`;
+      return `term ${termFilter.comparator} ${valueStr}`;
     }
 
     case "LanguageFilter":
