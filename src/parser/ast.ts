@@ -31,10 +31,11 @@ export interface RefinedExpression extends AstNode {
   refinement: Refinement;
 }
 
-// Sub-expression: optional constraint operator + focus concept + optional filter
+// Sub-expression: optional constraint operator + optional memberOf + focus concept + optional filter
 export interface SubExpression extends AstNode {
   type: "SubExpression";
   constraintOperator?: ConstraintOperator;
+  memberOf?: boolean; // True when ^ (memberOf) operator is present after constraint operator
   focusConcept: FocusConcept;
   filters?: Filter[];
 }

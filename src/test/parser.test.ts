@@ -64,6 +64,59 @@ describe("ECL Parser", () => {
         focusConcept: { type: "WildcardConcept" },
       });
     });
+
+    it("should parse nested constraint operators with parentheses", () => {
+      const result = parseEcl("<< (^ 929360071000036103)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "SubExpression",
+        constraintOperator: { operator: "<<" },
+      });
+    });
+
+    it("should parse memberOf after constraint operator with space", () => {
+      const result = parseEcl("<< ^ 929360071000036103");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "SubExpression",
+        constraintOperator: { operator: "<<" },
+        memberOf: true,
+      });
+    });
+
+    it("should parse memberOf after constraint operator without space", () => {
+      const result = parseEcl("<<^929360071000036103");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "SubExpression",
+        constraintOperator: { operator: "<<" },
+        memberOf: true,
+      });
+    });
+
+    it("should parse complex nested expression from user issue (no parentheses)", () => {
+      // Now works: <<^929360071000036103 (memberOf after constraint operator)
+      const result = parseEcl("^ 929360061000036106 OR <<^929360071000036103");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "CompoundExpression",
+        operator: "OR",
+      });
+      // Verify the right side has both constraintOperator and memberOf
+      const ast = result.ast as any;
+      expect(ast.right.constraintOperator.operator).toBe("<<");
+      expect(ast.right.memberOf).toBe(true);
+    });
+
+    it("should parse complex nested expression from user issue (with parentheses)", () => {
+      // Also works: << (^ 929360071000036103) (parenthesized)
+      const result = parseEcl("^ 929360061000036106 OR << (^ 929360071000036103)");
+      expect(result.errors).toHaveLength(0);
+      expect(result.ast).toMatchObject({
+        type: "CompoundExpression",
+        operator: "OR",
+      });
+    });
   });
 
   describe("Compound expressions", () => {

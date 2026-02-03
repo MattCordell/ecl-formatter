@@ -140,13 +140,17 @@ export class EclAstVisitor extends BaseEclVisitor {
    * Transforms subExpressionConstraint CST node to SubExpression AST.
    *
    * Builds a complete sub-expression with optional constraint operator (e.g., <, <<),
-   * required focus concept, optional filter constraints, and optional dotted attribute paths.
+   * optional memberOf operator (^), required focus concept, optional filter constraints,
+   * and optional dotted attribute paths.
+   *
+   * According to the ABNF specification, memberOf (^) can appear after a constraint operator,
+   * allowing expressions like `<< ^ 123456` or `<<^123456` (descendant-or-self-of members-of).
    *
    * If dotted notation is present (e.g., x . a . b), constructs a DottedAttributePath as the
    * focus concept, wrapping the base expression and chained attributes.
    *
-   * @param ctx - CST context containing eclFocusConcept, optional constraintOperator, optional filterConstraint array, and optional Dot/eclAttributeName
-   * @returns SubExpression with focusConcept (possibly dotted path) and optional constraintOperator and filters
+   * @param ctx - CST context containing eclFocusConcept, optional constraintOperator, optional MemberOf, optional filterConstraint array, and optional Dot/eclAttributeName
+   * @returns SubExpression with focusConcept (possibly dotted path) and optional constraintOperator, memberOf, and filters
    *
    * @example
    * Input CST: "<< 404684003 |Clinical finding| {{ term = \"diabetes\" }}"
@@ -155,6 +159,15 @@ export class EclAstVisitor extends BaseEclVisitor {
    *   constraintOperator: { type: "ConstraintOperator", operator: "<<" },
    *   focusConcept: { type: "ConceptReference", sctId: "404684003", term: "Clinical finding" },
    *   filters: [{ type: "Filter", ... }]
+   * }
+   *
+   * @example
+   * Input CST: "<<^929360071000036103"
+   * Output: {
+   *   type: "SubExpression",
+   *   constraintOperator: { type: "ConstraintOperator", operator: "<<" },
+   *   memberOf: true,
+   *   focusConcept: { type: "ConceptReference", sctId: "929360071000036103" }
    * }
    *
    * @example
@@ -181,6 +194,10 @@ export class EclAstVisitor extends BaseEclVisitor {
 
       if (ctx.constraintOperator) {
         baseSubExpr.constraintOperator = this.visit(ctx.constraintOperator[0]);
+      }
+
+      if (ctx.MemberOf) {
+        baseSubExpr.memberOf = true;
       }
 
       if (ctx.filterConstraint && ctx.filterConstraint.length > 0) {
@@ -214,6 +231,10 @@ export class EclAstVisitor extends BaseEclVisitor {
 
     if (ctx.constraintOperator) {
       result.constraintOperator = this.visit(ctx.constraintOperator[0]);
+    }
+
+    if (ctx.MemberOf) {
+      result.memberOf = true;
     }
 
     if (ctx.filterConstraint && ctx.filterConstraint.length > 0) {

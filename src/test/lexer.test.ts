@@ -135,6 +135,17 @@ describe("ECL Lexer", () => {
       expect(result.tokens).toHaveLength(1);
       expect(result.tokens[0].tokenType.name).toBe("MemberOf");
     });
+
+    it("should tokenize combined operators without whitespace (<<^)", () => {
+      const result = tokenize("<<^929360071000036103");
+      expect(result.tokens).toHaveLength(3);
+      expect(result.tokens[0].tokenType.name).toBe("DescendantOrSelfOf");
+      expect(result.tokens[0].image).toBe("<<");
+      expect(result.tokens[1].tokenType.name).toBe("MemberOf");
+      expect(result.tokens[1].image).toBe("^");
+      expect(result.tokens[2].tokenType.name).toBe("SctId");
+      expect(result.tokens[2].image).toBe("929360071000036103");
+    });
   });
 
   describe("Constraint operators (long-form syntax)", () => {

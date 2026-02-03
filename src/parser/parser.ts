@@ -164,17 +164,23 @@ export class EclParser extends CstParser {
    * Parses a sub-expression constraint, optionally with dotted attribute path.
    *
    * This is a core building block consisting of an optional constraint operator (e.g., <<, <),
-   * a focus concept (SCTID, wildcard, nested expression, or alternate ID), and optional filter
-   * constraints. The constraint operator defines the relationship (descendant, ancestor, etc.)
-   * to the focus concept.
+   * an optional memberOf operator (^), a focus concept (SCTID, wildcard, nested expression, or
+   * alternate ID), and optional filter constraints. The constraint operator defines the relationship
+   * (descendant, ancestor, etc.) to the focus concept.
+   *
+   * According to the ABNF specification, memberOf (^) can appear after a constraint operator,
+   * allowing expressions like `<< ^ 123456` or `<<^123456` (descendant-or-self-of members-of).
    *
    * Dotted expressions allow chained attribute navigation (e.g., x . a . b), which is semantically
    * equivalent to reverse attribute syntax: x . a = * : R a = x
    *
-   * @grammar subExpressionConstraint ::= constraintOperator? eclFocusConcept filterConstraint* (dot eclAttributeName)*
+   * @grammar subExpressionConstraint ::= constraintOperator? memberOf? eclFocusConcept filterConstraint* (dot eclAttributeName)*
    *
    * @example
    * - `<< 73211009 |Diabetes mellitus|` (descendant-or-self constraint)
+   * - `^ 700043003 |Example reference set|` (member-of constraint)
+   * - `<<^929360071000036103` (descendant-or-self-of members-of - no space required)
+   * - `<< ^ 929360071000036103` (descendant-or-self-of members-of - with space)
    * - `* {{ term = "disorder" }}` (wildcard with term filter)
    * - `descendantOf 404684003 |Clinical finding|` (long-form constraint operator)
    * - `< 125605004 . 363698007` (dotted notation - single dot)
@@ -183,6 +189,10 @@ export class EclParser extends CstParser {
   private subExpressionConstraint = this.RULE("subExpressionConstraint", () => {
     this.OPTION(() => {
       this.SUBRULE(this.constraintOperator);
+    });
+    // Optional memberOf operator (^ can appear after constraint operator per ABNF spec)
+    this.OPTION2(() => {
+      this.CONSUME(MemberOf);
     });
     this.SUBRULE(this.eclFocusConcept);
     this.MANY(() => {

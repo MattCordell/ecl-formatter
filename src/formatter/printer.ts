@@ -188,6 +188,11 @@ function printSubExpression(
     currentColumn += op.length + 1;
   }
 
+  if (node.memberOf) {
+    result += "^ ";
+    currentColumn += 2;
+  }
+
   const focusStr = print(node.focusConcept as ast.AstNode, options, indent, currentColumn);
   result += focusStr;
   currentColumn += focusStr.length;

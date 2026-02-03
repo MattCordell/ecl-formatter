@@ -39,6 +39,37 @@ describe("ECL Formatter", () => {
       expect(result.error).toBeNull();
       expect(result.formatted).toBe("<< *");
     });
+
+    it("should format memberOf after constraint operator (no space)", () => {
+      const input = "<<^929360071000036103";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("<< ^ 929360071000036103");
+    });
+
+    it("should format memberOf after constraint operator (with space)", () => {
+      const input = "<< ^ 929360071000036103";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("<< ^ 929360071000036103");
+    });
+
+    it("should format memberOf standalone", () => {
+      const input = "^929360071000036103";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toBe("^ 929360071000036103");
+    });
+
+    it("should format user's expression with <<^ (simplified)", () => {
+      // Simplified version of user's expression focusing on the <<^ fix
+      // Note: The full expression has term != which is a separate unsupported feature
+      const input = "(^ 929360061000036106 OR <<^929360071000036103) : << 127489000 = (< 69908008 OR < 116633006)";
+      const result = formatEcl(input, options);
+      expect(result.error).toBeNull();
+      expect(result.formatted).toContain("<< ^ 929360071000036103");
+      expect(result.formatted).toContain("^ 929360061000036106");
+    });
   });
 
   describe("Compound expressions", () => {
